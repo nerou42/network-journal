@@ -1,0 +1,16 @@
+[Unit]
+Description=Webserver to receive network related reports
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+Environment="RUST_LOG=info"
+ExecStart=/usr/local/bin/network-journal --config /etc/network-journal/network-journal.yml
+StandardOutput=append:/var/log/network-journal/network-journal.log
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
