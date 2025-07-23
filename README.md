@@ -77,3 +77,5 @@ Add the following DNS entry for your domain:
 `_smtp._tls.example.com IN TXT "v=TLSRPTv1; rua=https://example.com/tlsrpt"`
 
 ## License
+
+This project is licensed under the [GPLv3.0 license](LICENSE.md).
