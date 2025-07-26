@@ -8,12 +8,15 @@ To do that, this project contains a webserver, that will listen to incoming repo
 
 ### Supported reports
 
-- [x] Crash reports (in a context of websites)
-- [x] [Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP) (Level 1, 2 and 3) reports
-- [x] Deprecations (in a context of websites)
-- [x] [Network Error Logging](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Network_Error_Logging)
+- [x] [Crash reports](https://wicg.github.io/crash-reporting/) (in a context of websites)
+- [x] Content Security Policy (Level 1, [2](https://www.w3.org/TR/CSP2/) and [3](https://www.w3.org/TR/CSP3/)) reports ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP))
+- [x] [Deprecations](https://wicg.github.io/deprecation-reporting/) (in a context of websites)
+- [x] [Network Error Logging](https://www.w3.org/TR/network-error-logging/) ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Network_Error_Logging))
 - [x] [SMTP TLS Reports](https://www.rfc-editor.org/rfc/rfc8460)
-- [ ] DMARC reports
+- [x] [DMARC reports](https://www.rfc-editor.org/rfc/rfc7489.html)
+- [ ] [Permissions Policy](https://w3c.github.io/webappsec-permissions-policy/)
+- [ ] [Integrity Policy](https://w3c.github.io/webappsec-subresource-integrity/)
+- [ ] [Intervention reports](https://wicg.github.io/intervention-reporting/)
 
 ### Supported report handling
 
@@ -61,6 +64,11 @@ Add the following HTTP headers to your HTTP responses:
 Add the following HTTP header to your HTTP responses:
 
 `Reporting-Endpoints: default="https://example.com/deprecation"`
+
+### DMARC
+
+Add a DMARC DNS entry with a `rua` tag to send aggregate reports to some mailbox (it is recommended to create a mailbox solely for this purpose).
+Set the credentials for this mailbox in the configuration file.
 
 ### NEL (Network Error Logging)
 

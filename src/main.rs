@@ -16,22 +16,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::path::PathBuf;
+use std::{path::PathBuf, thread::Builder};
 
 use actix_cors::Cors;
 use actix_web::{dev::Service, guard::{self, Header}, http::header::{self, HeaderValue}, main, web::{resource, Payload}, App, HttpServer};
 use clap::{crate_name, crate_version, Parser};
 use futures_util::future::FutureExt;
+use log::info;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::Deserialize;
 use simple_logger::SimpleLogger;
 
-use crate::{config::NetworkJournalConfig, crash::report_crash, csp::report_csp, deprecation::report_deprecation, nel::report_nel, smtp_tls::report_smtp_tls};
+use crate::{config::NetworkJournalConfig, crash::report_crash, csp::report_csp, deprecation::report_deprecation, dmarc::IMAPClient, nel::report_nel, smtp_tls::report_smtp_tls};
 
 mod config;
 mod crash;
 mod csp;
 mod deprecation;
+mod dmarc;
 mod nel;
 mod smtp_tls;
 
@@ -94,6 +96,36 @@ async fn main() -> std::io::Result<()> {
         Err(err) => panic!("config file could not be opened: {}", err)
     };
 
+    let _imap_thread_handle = if cfg.imap.enable {
+        Some(Builder::new().name("imap".to_string()).spawn(move || {
+            info!("IMAP thread started");
+            let imap_connect_res = IMAPClient::connect(
+                &cfg.imap.host, 
+                cfg.imap.port, 
+                &cfg.imap.username, 
+                &cfg.imap.password
+            );
+            
+            match imap_connect_res {
+                Ok(mut imap_client) => {
+                    info!("IMAP connection established");
+                    imap_client.read("UNANSWERED UNSEEN UNDELETED UNDRAFT SUBJECT \"Report Domain:\"").map(|reports| {
+                        info!("filtered e-mail count: {}", reports.len());
+                        for report in reports {
+                            info!("DMARC {}", serde_json::to_string_pretty(&report).unwrap());
+                        }
+                    }).expect("unable to read message");
+                    imap_client.disconnect().expect("failed to disconnect from IMAP server");
+                },
+                Err(err) => {
+                    eprintln!("failed to connect to IMAP server: {}", err);
+                }
+            }
+        }))
+    } else {
+        None
+    };
+
     let server_string: &'static str = format!("{}/{}", crate_name!(), crate_version!()).leak();
     let server = HttpServer::new(|| {
         let cors = Cors::default()
@@ -138,4 +170,10 @@ async fn main() -> std::io::Result<()> {
         server.bind((cfg.listen, cfg.port))?
     };
     bound_server.run().await
+
+    /*if let Some(imap_thread) = imap_thread_handle {
+        match imap_thread.join() {
+            Ok() => 
+        }
+    }*/
 }
