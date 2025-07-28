@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::{path::PathBuf, thread::Builder};
+use std::{path::PathBuf, thread::{sleep, Builder}, time::Duration};
 
 use actix_cors::Cors;
 use actix_web::{dev::Service, guard::{self, Header}, http::header::{self, HeaderValue}, main, web::{resource, Payload}, App, HttpServer};
@@ -99,27 +99,32 @@ async fn main() -> std::io::Result<()> {
     let _imap_thread_handle = if cfg.imap.enable {
         Some(Builder::new().name("imap".to_string()).spawn(move || {
             info!("IMAP thread started");
-            let imap_connect_res = IMAPClient::connect(
-                &cfg.imap.host, 
-                cfg.imap.port, 
-                &cfg.imap.username, 
-                &cfg.imap.password
-            );
-            
-            match imap_connect_res {
-                Ok(mut imap_client) => {
-                    info!("IMAP connection established");
-                    imap_client.read("UNANSWERED UNSEEN UNDELETED UNDRAFT SUBJECT \"Report Domain:\"").map(|reports| {
-                        info!("filtered e-mail count: {}", reports.len());
-                        for report in reports {
-                            info!("DMARC {}", serde_json::to_string_pretty(&report).unwrap());
-                        }
-                    }).expect("unable to read message");
-                    imap_client.disconnect().expect("failed to disconnect from IMAP server");
-                },
-                Err(err) => {
-                    eprintln!("failed to connect to IMAP server: {}", err);
+
+            loop {
+                let imap_connect_res = IMAPClient::connect(
+                    &cfg.imap.host,
+                    cfg.imap.port,
+                    &cfg.imap.username,
+                    &cfg.imap.password
+                );
+
+                match imap_connect_res {
+                    Ok(mut imap_client) => {
+                        info!("IMAP connection established");
+                        imap_client.read("UNANSWERED UNSEEN UNDELETED UNDRAFT SUBJECT \"Report Domain:\"").map(|reports| {
+                            info!("filtered e-mail count: {}", reports.len());
+                            for report in reports {
+                                info!("DMARC {}", serde_json::to_string_pretty(&report).unwrap());
+                            }
+                        }).expect("unable to read message");
+                        imap_client.disconnect().expect("failed to disconnect from IMAP server");
+                    },
+                    Err(err) => {
+                        eprintln!("failed to connect to IMAP server: {}", err);
+                    }
                 }
+
+                sleep(Duration::from_secs(300));
             }
         }))
     } else {
