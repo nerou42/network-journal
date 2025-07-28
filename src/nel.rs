@@ -23,12 +23,11 @@ use serde::{Deserialize, Serialize};
 use crate::{Report, ReportType};
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "snake_case")]
 pub enum Phase {
     #[serde(rename = "dns")]
     DNS,
-    #[serde(rename = "connection")]
     Connection,
-    #[serde(rename = "application")]
     Application
 }
 
@@ -38,6 +37,7 @@ pub struct NetworkError {
     method: String,
     phase: Phase,
     protocol: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     referrer: Option<String>,
     sampling_fraction: u16,
     server_ip: String,

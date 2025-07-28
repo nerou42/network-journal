@@ -23,8 +23,8 @@ use serde::{Deserialize, Serialize};
 use crate::{get_body_as_string, Report, ReportType};
 
 #[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
 struct CSPReport {
-    #[serde(alias = "csp-report")]
     csp_report: CSPViolation,
 }
 
@@ -47,25 +47,27 @@ pub struct CSPViolation {
     #[serde(alias = "effective-directive", alias = "effectiveDirective")]
     effective_directive: String,
     /// removed in CSP3, required in CSP2
-    #[serde(rename(deserialize = "violated-directive"))]
+    #[serde(rename(deserialize = "violated-directive"), skip_serializing_if = "Option::is_none")]
     violated_directive: Option<String>,
     #[serde(alias = "original-policy", alias = "originalPolicy")]
     original_policy: String,
     /// new in CSP3
+    #[serde(skip_serializing_if = "Option::is_none")]
     sample: Option<String>,
     /// new in CSP3
+    #[serde(skip_serializing_if = "Option::is_none")]
     disposition: Option<CSPReportDisposition>,
     /// new in CSP2
-    #[serde(alias = "status-code", alias = "statusCode")]
+    #[serde(alias = "status-code", alias = "statusCode", skip_serializing_if = "Option::is_none")]
     status_code: Option<u16>,
     /// new in CSP2
-    #[serde(alias = "source-file", alias = "sourceFile")]
+    #[serde(alias = "source-file", alias = "sourceFile", skip_serializing_if = "Option::is_none")]
     source_file: Option<String>,
     /// new in CSP2
-    #[serde(alias = "line-number", alias = "lineNumber")]
+    #[serde(alias = "line-number", alias = "lineNumber", skip_serializing_if = "Option::is_none")]
     line_number: Option<u64>,
     /// new in CSP2
-    #[serde(alias = "column-number", alias = "columnNumber")]
+    #[serde(alias = "column-number", alias = "columnNumber", skip_serializing_if = "Option::is_none")]
     column_number: Option<u64>
 }
 

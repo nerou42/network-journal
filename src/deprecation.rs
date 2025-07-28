@@ -26,10 +26,14 @@ use crate::{Report, ReportType};
 #[serde(rename_all = "camelCase")]
 pub struct Deprecation {
     id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     anticipated_removal: Option<String>,
     message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     source_file: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     line_number: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     column_number: Option<u64>
 }
 

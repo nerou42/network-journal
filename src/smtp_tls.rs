@@ -16,95 +16,77 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{web::Json, HttpMessage, HttpRequest, HttpResponse, Responder};
-use log::{error, info};
+use actix_web::{web::Json, HttpResponse, Responder};
+use log::info;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 struct DateRange {
-    #[serde(rename = "start-datetime")]
     start_datetime: String,
-    #[serde(rename = "end-datetime")]
     end_datetime: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 enum PolicyType {
-    #[serde(rename(deserialize = "tlsa"))]
+    #[serde(rename = "tlsa")]
     TLSA,
-    #[serde(rename(deserialize = "sts"))]
+    #[serde(rename = "sts")]
     STS,
-    #[serde(rename(deserialize = "no-policy-found"))]
-    NONE
+    NoPolicyFound
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 struct Policy {
-    #[serde(rename = "policy-type")]
     policy_type: PolicyType,
-    #[serde(rename = "policy-string")]
     policy_string: Vec<String>,
-    #[serde(rename = "policy-domain")]
     policy_domain: String,
-    #[serde(rename = "mx-host")]
     mx_host: Vec<String>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 struct Summary {
-    #[serde(rename(deserialize = "total-successful-session-count"))]
     total_successful_session_count: u64,
-    #[serde(rename(deserialize = "total-failure-session-count"))]
     total_failure_session_count: u64
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 struct FailureDetails {
-    #[serde(rename(deserialize = "result-type"))]
     result_type: String,
-    #[serde(rename(deserialize = "sending-mta-ip"))]
     sending_mta_ip: String,
-    #[serde(rename(deserialize = "receiving-mx-hostname"))]
     receiving_mx_hostname: String,
-    #[serde(rename(deserialize = "receiving-mx-helo"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     receiving_mx_helo: Option<String>,
-    #[serde(rename(deserialize = "receiving-ip"))]
     receiving_ip: String,
-    #[serde(rename(deserialize = "failed-session-count"))]
     failed_session_count: u64,
-    #[serde(rename(deserialize = "additional-information"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     additional_information: Option<String>,
-    #[serde(rename(deserialize = "failure-reason-code"))]
     failure_reason_code: String
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 struct PoliciesItem {
     policy: Policy,
     summary: Summary,
-    #[serde(rename = "failure-details", default)]
     failure_details: Vec<FailureDetails>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub struct SMTPTLSReport {
-    #[serde(rename(deserialize = "organization-name"))]
     organization_name: String,
-    #[serde(rename(deserialize = "date-range"))]
     date_range: DateRange,
-    #[serde(rename(deserialize = "contact-info"))]
     contact_info: String,
-    #[serde(rename(deserialize = "report-id"))]
     report_id: String,
     policies: Vec<PoliciesItem>
 }
 
-pub async fn report_smtp_tls(req: HttpRequest, report: Json<SMTPTLSReport>) -> impl Responder {
-    if req.content_type() == "application/tlsrpt+json" || req.content_type() == "application/tlsrpt+gzip" {
-        info!("SMTP-TLS-RPT {}", serde_json::to_string_pretty(&report).unwrap());
-        HttpResponse::Ok()
-    } else {
-        error!("invalid content type: {}", req.content_type());
-        HttpResponse::BadRequest()
-    }
+pub async fn report_smtp_tls(report: Json<SMTPTLSReport>) -> impl Responder {
+    info!("SMTP-TLS-RPT {}", serde_json::to_string_pretty(&report).unwrap());
+    HttpResponse::Ok()
 }

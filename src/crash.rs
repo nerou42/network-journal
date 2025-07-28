@@ -23,10 +23,10 @@ use serde::{Deserialize, Serialize};
 use crate::{Report, ReportType};
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename = "snake_case")]
 pub enum CrashReason {
     #[serde(rename = "oom")]
     OutOfMemory,
-    #[serde(rename = "unresponsive")]
     Unresponsive
 }
 
@@ -40,9 +40,11 @@ pub enum PageVisibility {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Crash {
     reason: CrashReason,
+    #[serde(skip_serializing_if = "Option::is_none")]
     stack: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     is_top_level: Option<bool>,
-    #[serde(alias = "visibility_state")]
+    #[serde(alias = "visibility_state", skip_serializing_if = "Option::is_none")]
     page_visibility: Option<PageVisibility>
 }
 
