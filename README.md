@@ -1,19 +1,24 @@
 # network-journal
 
-This project is about handling all the reports browser (Content Security Policy, Network Error Logging etc.) and e-mail (DMARC, SMTP TLS etc.) servers can send nowadays.
+This project is about handling all the reports browsers (Content Security Policy, Network Error Logging etc.) and e-mail servers (DMARC, SMTP TLS etc.) can send nowadays.
 
-To do that, this project contains a webserver, that will listen to incoming reports, validate them, filter them, structure them and log them to a file. This log file can be read by your log monitoring tools like an ELK-stack or Grafana Loki. With that, you can generate diagrams, configure alerts, you name it.
+To do that, this project contains a webserver, that will listen to incoming reports, validate them, filter them, structure them and log them to a file. 
+This log file can be read by your log monitoring tools like an ELK-stack or Grafana Loki. 
+With that, you can generate diagrams, configure alerts, you name it.
 
 ## Current state
 
 ### Supported reports
 
-- [x] Crash reports (in a context of websites)
-- [x] [Content Security Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP) (Level 1, 2 and 3) reports
-- [x] Deprecations (in a context of websites)
-- [x] [Network Error Logging](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Network_Error_Logging)
+- [x] [Crash Reports](https://wicg.github.io/crash-reporting/) (in a context of websites)
+- [x] Content Security Policy (Level 1, [2](https://www.w3.org/TR/CSP2/) and [3](https://www.w3.org/TR/CSP3/)) reports ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP))
+- [x] [Deprecations](https://wicg.github.io/deprecation-reporting/) (in a context of websites)
+- [x] [Network Error Logging](https://www.w3.org/TR/network-error-logging/) ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Network_Error_Logging))
 - [x] [SMTP TLS Reports](https://www.rfc-editor.org/rfc/rfc8460)
-- [ ] DMARC reports
+- [ ] [DMARC aggregate Reports](https://www.rfc-editor.org/rfc/rfc7489.html)
+- [ ] [Permissions Policy](https://w3c.github.io/webappsec-permissions-policy/)
+- [ ] [Integrity Policy](https://w3c.github.io/webappsec-subresource-integrity/)
+- [ ] [Intervention Reports](https://wicg.github.io/intervention-reporting/)
 
 ### Supported report handling
 
