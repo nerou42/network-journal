@@ -1,5 +1,8 @@
 # network-journal
 
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nerou42/network-journal/ci.yml)
+![GitHub Release](https://img.shields.io/github/v/release/nerou42/network-journal?display_name=tag&label=latest%20release&color=blue)
+
 This project is about handling all the reports browsers (Content Security Policy, Network Error Logging etc.) and e-mail servers (DMARC, SMTP TLS etc.) can send nowadays.
 
 To do that, this project contains a webserver, that will listen to incoming reports, validate them, filter them, structure them and log them to a file. 
@@ -30,7 +33,7 @@ With that, you can generate diagrams, configure alerts, you name it.
 ### Supported installation methods
 
 - [x] Build from source
-- [x] Provide systemd service file
+- [x] Provide [systemd service file](pkg/network-journal.service)
 - [ ] RPM package
 - [ ] DEB package
 
