@@ -34,7 +34,7 @@ With that, you can generate diagrams, configure alerts, you name it.
 
 - [x] Build from source
 - [x] Provide [systemd service file](pkg/network-journal.service)
-- [ ] RPM package
+- [x] RPM package
 - [ ] DEB package
 
 ## Install
