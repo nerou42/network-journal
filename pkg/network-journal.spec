@@ -58,7 +58,7 @@ cargo test -r
 
 %files
 %license LICENSE.md
-%doc README.md
+%doc README.md examples/
 %attr(0755, root, root) %{_bindir}/%{name}
 %dir %attr(0755, root, root) %{_sysconfdir}/%{name}
 %ghost %config(noreplace) %attr(0600, root, root) %{_sysconfdir}/%{name}/%{name}.toml
