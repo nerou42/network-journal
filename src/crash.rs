@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Report, ReportType};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename = "snake_case")]
 pub enum CrashReason {
     #[serde(rename = "oom")]
@@ -30,14 +30,14 @@ pub enum CrashReason {
     Unresponsive
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "lowercase")]
 pub enum PageVisibility {
     Visible,
     Hidden
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Crash {
     reason: CrashReason,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -57,3 +57,37 @@ pub async fn report_crash(report: Json<Report<Crash>>) -> impl Responder {
         HttpResponse::BadRequest()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_report() {
+        // source: https://wicg.github.io/crash-reporting/
+        let json = r#"{
+            "type": "crash",
+            "age": 42,
+            "url": "https://example.com/",
+            "user_agent": "Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0",
+            "body": {
+                "reason": "oom"
+            }
+        }"#;
+        let res = serde_json::from_str::<Report<Crash>>(json);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), Report {
+            r#type: ReportType::Crash,
+            body: Crash {
+                reason: CrashReason::OutOfMemory,
+                stack: None,
+                is_top_level: None,
+                page_visibility: None
+            },
+            age: Some(42),
+            url: "https://example.com/".to_string(),
+            user_agent: Some("Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0".to_string()),
+        })
+    }
+}
+
