@@ -12,4 +12,3 @@ RUN rpm -e --nodeps coreutils-single && \
 
 WORKDIR /root/rpmbuild
 CMD ["/bin/sh"]
-# wget http://github.com/nerou42/network-journal/archive/v0.1.0/network-journal-0.1.0.tar.gz -O SOURCES/ && rpmbuild -bb SPECS/network-journal.spec
