@@ -1,0 +1,10 @@
+/var/log/network-journal/network-journal.log {
+    daily
+    rotate 10
+    notifempty
+    maxsize 10M
+    missingok
+    copytruncate
+    compress
+    delaycompress
+}

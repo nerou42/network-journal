@@ -46,6 +46,7 @@ cargo tree --workspace --offline --edges no-build,no-dev,no-proc-macro --no-dedu
 %install
 install -m 0755 -p -D target/release/%{name} %{buildroot}%{_bindir}/%{name}
 install -m 0644 -p -D pkg/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
+install -m 0644 -p -D pkg/%{name}.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/%{name}
 mkdir -p %{buildroot}%{_sysconfdir}/%{name}
 mkdir -p %{buildroot}%{_localstatedir}/log/%{name}
 
@@ -65,8 +66,12 @@ cargo test -r
 %attr(0644, root, root) %{_unitdir}/%{name}.service
 %dir %attr(0755, root, root) %{_localstatedir}/log/%{name}
 %ghost %attr(0700, root, root) %{_localstatedir}/log/%{name}/%{name}.log
+%attr(0644, root, root) %{_sysconfdir}/logrotate.d/%{name}
 
 
 %changelog
+* Wed Aug 06 2025 nerou GmbH <info@nerou.de>
+- Add logrotate config
+
 * Mon Aug 04 2025 nerou GmbH <info@nerou.de>
 - Initial RPM package
