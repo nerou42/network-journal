@@ -26,13 +26,16 @@ use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::Deserialize;
 use simple_logger::SimpleLogger;
 
-use crate::{config::NetworkJournalConfig, crash::report_crash, csp::report_csp, deprecation::report_deprecation, nel::report_nel, smtp_tls::report_smtp_tls};
+use crate::{config::NetworkJournalConfig, crash::report_crash, csp::report_csp, deprecation::report_deprecation, integrity::report_integrity, intervention::report_intervention, nel::report_nel, permissions::report_permissions, smtp_tls::report_smtp_tls};
 
 mod config;
 mod crash;
 mod csp;
 mod deprecation;
+mod integrity;
+mod intervention;
 mod nel;
+mod permissions;
 mod smtp_tls;
 
 #[derive(Parser, Debug)]
@@ -46,20 +49,25 @@ struct Args {
 #[serde(rename_all = "kebab-case")]
 enum ReportType {
     Crash,
+    #[serde(rename = "csp-hash")]
+    CSPHash,
     #[serde(rename = "csp-violation")]
     CSPViolation,
     Deprecation,
     IntegrityViolation,
     Intervention,
     NetworkError,
+    PermissionsPolicyViolation,
 }
 
-#[allow(unused)]
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq, Eq, Debug)]
+struct ReportTypeInference {
+    r#type: ReportType
+}
+
+#[derive(Deserialize, PartialEq, Eq, Debug)]
 struct Report<T> {
-    //context: object,
     r#type: ReportType,
-    //destination: String,
     body: T,
     #[serde(skip_serializing_if = "Option::is_none")]
     age: Option<u32>,
@@ -120,9 +128,18 @@ async fn main() -> std::io::Result<()> {
             .service(resource("/deprecation")
                 .guard(Header("content-type", "application/reports+json"))
                 .post(report_deprecation))
+            .service(resource("/integrity")
+                .guard(Header("content-type", "application/reports+json"))
+                .post(report_integrity))
+            .service(resource("/intervention")
+                .guard(Header("content-type", "application/reports+json"))
+                .post(report_intervention))
             .service(resource("/nel")
                 .guard(Header("content-type", "application/reports+json"))
                 .post(report_nel))
+            .service(resource("/permissions")
+                .guard(Header("content-type", "application/reports+json"))
+                .post(report_permissions))
             .service(resource("/tlsrpt")
                 .guard(guard::Any(Header("content-type", "application/tlsrpt+gzip")).or(Header("content-type", "application/tlsrpt+json")))
                 .post(report_smtp_tls))
