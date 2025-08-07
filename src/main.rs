@@ -23,12 +23,17 @@ use actix_web::{dev::Service, guard::{self, Header}, http::header::{self, Header
 use clap::{crate_name, crate_version, Parser};
 use futures_util::future::FutureExt;
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
-use serde::Deserialize;
 use simple_logger::SimpleLogger;
 
-use crate::{config::NetworkJournalConfig, crash::report_crash, csp::report_csp, deprecation::report_deprecation, integrity::report_integrity, intervention::report_intervention, nel::report_nel, permissions::report_permissions, smtp_tls::report_smtp_tls};
+use crate::{
+    config::NetworkJournalConfig, 
+    csp::report_csp,
+    reporting_api::reporting_api, 
+    smtp_tls::report_smtp_tls
+};
 
 mod config;
+mod reporting_api;
 mod crash;
 mod csp;
 mod deprecation;
@@ -43,37 +48,6 @@ mod smtp_tls;
 struct Args {
     #[arg(short, long, value_name="FILE.yml", default_value = "network-journal.yml")]
     config: PathBuf
-}
-
-#[derive(Deserialize, PartialEq, Eq, Debug)]
-#[serde(rename_all = "kebab-case")]
-enum ReportType {
-    Crash,
-    #[serde(rename = "csp-hash")]
-    CSPHash,
-    #[serde(rename = "csp-violation")]
-    CSPViolation,
-    Deprecation,
-    IntegrityViolation,
-    Intervention,
-    NetworkError,
-    PermissionsPolicyViolation,
-}
-
-#[derive(Deserialize, PartialEq, Eq, Debug)]
-struct ReportTypeInference {
-    r#type: ReportType
-}
-
-#[derive(Deserialize, PartialEq, Eq, Debug)]
-struct Report<T> {
-    r#type: ReportType,
-    body: T,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    age: Option<u32>,
-    url: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    user_agent: Option<String>
 }
 
 async fn get_body_as_string(body: Payload) -> Result<String, String> {
@@ -119,27 +93,30 @@ async fn main() -> std::io::Result<()> {
                     }
                 })
             })
+            .service(resource("/reporting-api")
+                .guard(Header("content-type", "application/reports+json"))
+                .post(reporting_api))
             .service(resource("/crash")
                 .guard(Header("content-type", "application/reports+json"))
-                .post(report_crash))
+                .post(reporting_api))
             .service(resource("/csp")
                 .guard(guard::Any(Header("content-type", "application/reports+json")).or(Header("content-type", "application/csp-report")))
                 .post(report_csp))
             .service(resource("/deprecation")
                 .guard(Header("content-type", "application/reports+json"))
-                .post(report_deprecation))
+                .post(reporting_api))
             .service(resource("/integrity")
                 .guard(Header("content-type", "application/reports+json"))
-                .post(report_integrity))
+                .post(reporting_api))
             .service(resource("/intervention")
                 .guard(Header("content-type", "application/reports+json"))
-                .post(report_intervention))
+                .post(reporting_api))
             .service(resource("/nel")
                 .guard(Header("content-type", "application/reports+json"))
-                .post(report_nel))
+                .post(reporting_api))
             .service(resource("/permissions")
                 .guard(Header("content-type", "application/reports+json"))
-                .post(report_permissions))
+                .post(reporting_api))
             .service(resource("/tlsrpt")
                 .guard(guard::Any(Header("content-type", "application/tlsrpt+gzip")).or(Header("content-type", "application/tlsrpt+json")))
                 .post(report_smtp_tls))

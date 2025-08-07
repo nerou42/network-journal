@@ -20,7 +20,7 @@ use actix_web::{web::Payload, HttpMessage, HttpRequest, HttpResponse, Responder}
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
-use crate::{get_body_as_string, Report, ReportType, ReportTypeInference};
+use crate::{get_body_as_string, reporting_api::{handle_reporting_api_report, ReportingApiReport}};
 
 #[derive(Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -83,52 +83,28 @@ pub struct CSPHash {
 pub async fn report_csp(req: HttpRequest, body: Payload) -> impl Responder {
     match req.content_type() {
         "application/reports+json" => {
-            let (parse_res, str) = match get_body_as_string(body).await {
+            match get_body_as_string(body).await {
                 Ok(str) => {
-                    let inferred_type = serde_json::from_str::<ReportTypeInference>(&str);
-                    match inferred_type {
-                        Ok(inf_type) => (inf_type, str),
+                    let report_parse_res = serde_json::from_str::<ReportingApiReport>(&str);
+                    let handle_res = match report_parse_res {
+                        Ok(reports) => {
+                            handle_reporting_api_report(&reports).await
+                        },
                         Err(err) => {
-                            error!("{} in {}", err, str);
+                            error!("failed to parse report: {} in {}", err, str);
                             return HttpResponse::BadRequest();
                         }
+                    };
+                    match handle_res {
+                        Ok(_) => HttpResponse::Ok(),
+                        Err(err) => {
+                            error!("failed to handle report(s): {} in {:?}", err, str);
+                            HttpResponse::BadRequest()
+                        }
                     }
-                    
                 },
                 Err(err) => {
                     error!("{}", err);
-                    return HttpResponse::BadRequest();
-                }
-            };
-            match parse_res.r#type {
-                ReportType::CSPViolation => {
-                    let res = serde_json::from_str::<Report<CSPViolation>>(&str);
-                    match res {
-                        Ok(report) => {
-                            info!("CSP {}", serde_json::to_string_pretty(&report.body).unwrap());
-                            HttpResponse::Ok()
-                        },
-                        Err(err) => {
-                            error!("failed to parse report: {}", err);
-                            HttpResponse::BadRequest()
-                        }
-                    }
-                },
-                ReportType::CSPHash => {
-                    let res = serde_json::from_str::<Report<CSPHash>>(&str);
-                    match res {
-                        Ok(report) => {
-                            info!("CSP-Hash {}", serde_json::to_string_pretty(&report.body).unwrap());
-                            HttpResponse::Ok()
-                        },
-                        Err(err) => {
-                            error!("failed to parse report: {}", err);
-                            HttpResponse::BadRequest()
-                        }
-                    }
-                },
-                default => {
-                    error!("invalid report type: {:?}", default);
                     return HttpResponse::BadRequest();
                 }
             }
@@ -161,6 +137,8 @@ pub async fn report_csp(req: HttpRequest, body: Payload) -> impl Responder {
 
 #[cfg(test)]
 mod tests {
+    use crate::reporting_api::{Report, ReportType};
+
     use super::*;
 
     #[test]
@@ -193,7 +171,7 @@ mod tests {
                 line_number: None,
                 column_number: None
             }
-        })
+        });
     }
 
     #[test]
@@ -218,11 +196,10 @@ mod tests {
             "url": "https://example.com/csp-report",
             "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
         }"#;
-        let res = serde_json::from_str::<Report<CSPViolation>>(json);
+        let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), Report {
-            r#type: ReportType::CSPViolation,
-            body: CSPViolation { 
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+            rpt: ReportType::CSPViolation(CSPViolation {
                 document_url: "https://example.com/csp-report".to_string(),
                 referrer: Some("https://www.google.com/".to_string()),
                 blocked_url: Some("inline".to_string()),
@@ -235,11 +212,11 @@ mod tests {
                 source_file: Some("https://example.com/csp-report".to_string()),
                 line_number: Some(121),
                 column_number: Some(39)
-            },
+            }),
             age: Some(53531),
             url: "https://example.com/csp-report".to_string(),
             user_agent: Some("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36".to_string())
-        })
+        }));
     }
 
     #[test]
@@ -258,20 +235,19 @@ mod tests {
                 "destination": "script"
             }
         }"#;
-        let res = serde_json::from_str::<Report<CSPHash>>(json);
+        let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), Report {
-            r#type: ReportType::CSPHash,
-            body: CSPHash { 
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+            rpt: ReportType::CSPHash(CSPHash {
                 document_url: "https://example.com/".to_string(),
                 subresource_url: "https://example.com/main.js".to_string(),
                 hash: "sha256-85738f8f9a7f1b04b5329c590ebcb9e425925c6d0984089c43a022de4f19c281".to_string(),
                 r#type: "subresource".to_string(),
                 destination: "script".to_string()
-            },
+            }),
             age: Some(12),
             url: "https://example.com/".to_string(),
             user_agent: Some("Mozilla/5.0 (X11; Linux i686; rv:132.0) Gecko/20100101 Firefox/132.0".to_string())
-        })
+        }));
     }
 }

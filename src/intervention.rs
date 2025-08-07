@@ -16,11 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{web::Json, HttpResponse, Responder};
-use log::{error, info};
 use serde::{Deserialize, Serialize};
-
-use crate::{Report, ReportType};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -37,18 +33,10 @@ pub struct Intervention {
     column_number: Option<u64>,
 }
 
-pub async fn report_intervention(report: Json<Report<Intervention>>) -> impl Responder {
-    if report.r#type == ReportType::Intervention {
-        info!("Intervention {}", serde_json::to_string_pretty(&report.body).unwrap());
-        HttpResponse::Ok()
-    } else {
-        error!("invalid report type: {:?}", report.r#type);
-        HttpResponse::BadRequest()
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::reporting_api::{Report, ReportType, ReportingApiReport};
+
     use super::*;
 
     #[test]
@@ -67,20 +55,19 @@ mod tests {
                 "columnNumber": 42
             }
         }"#;
-        let res = serde_json::from_str::<Report<Intervention>>(json);
+        let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), Report {
-            r#type: ReportType::Intervention,
-            body: Intervention {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+            rpt: ReportType::Intervention(Intervention {
                 id: "audio-no-gesture".to_string(),
                 message: "A request to play audio was blocked because it was not triggered by user activation (such as a click).".to_string(),
                 source_file: Some("https://example.com/index.js".to_string()),
                 line_number: Some(1234),
                 column_number: Some(42)
-            },
+            }),
             age: Some(27),
             url: "https://example.com/".to_string(),
             user_agent: Some("Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0".to_string()),
-        })
+        }));
     }
 }
