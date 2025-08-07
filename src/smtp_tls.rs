@@ -16,95 +16,201 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{web::Json, HttpMessage, HttpRequest, HttpResponse, Responder};
-use log::{error, info};
+use actix_web::{web::Json, HttpResponse, Responder};
+use log::info;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[serde(rename_all = "kebab-case")]
 struct DateRange {
-    #[serde(rename = "start-datetime")]
     start_datetime: String,
-    #[serde(rename = "end-datetime")]
     end_datetime: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+#[serde(rename_all = "kebab-case")]
 enum PolicyType {
-    #[serde(rename(deserialize = "tlsa"))]
+    #[serde(rename = "tlsa")]
     TLSA,
-    #[serde(rename(deserialize = "sts"))]
+    #[serde(rename = "sts")]
     STS,
-    #[serde(rename(deserialize = "no-policy-found"))]
-    NONE
+    NoPolicyFound
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[serde(rename_all = "kebab-case")]
 struct Policy {
-    #[serde(rename = "policy-type")]
     policy_type: PolicyType,
-    #[serde(rename = "policy-string")]
     policy_string: Vec<String>,
-    #[serde(rename = "policy-domain")]
     policy_domain: String,
-    #[serde(rename = "mx-host")]
     mx_host: Vec<String>
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[serde(rename_all = "kebab-case")]
 struct Summary {
-    #[serde(rename(deserialize = "total-successful-session-count"))]
     total_successful_session_count: u64,
-    #[serde(rename(deserialize = "total-failure-session-count"))]
     total_failure_session_count: u64
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[serde(rename_all = "kebab-case")]
 struct FailureDetails {
-    #[serde(rename(deserialize = "result-type"))]
     result_type: String,
-    #[serde(rename(deserialize = "sending-mta-ip"))]
     sending_mta_ip: String,
-    #[serde(rename(deserialize = "receiving-mx-hostname"))]
     receiving_mx_hostname: String,
-    #[serde(rename(deserialize = "receiving-mx-helo"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     receiving_mx_helo: Option<String>,
-    #[serde(rename(deserialize = "receiving-ip"))]
-    receiving_ip: String,
-    #[serde(rename(deserialize = "failed-session-count"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    receiving_ip: Option<String>,
     failed_session_count: u64,
-    #[serde(rename(deserialize = "additional-information"))]
+    #[serde(skip_serializing_if = "Option::is_none")]
     additional_information: Option<String>,
-    #[serde(rename(deserialize = "failure-reason-code"))]
-    failure_reason_code: String
+    #[serde(skip_serializing_if = "Option::is_none")]
+    failure_reason_code: Option<String>
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[serde(rename_all = "kebab-case")]
 struct PoliciesItem {
     policy: Policy,
     summary: Summary,
-    #[serde(rename = "failure-details", default)]
     failure_details: Vec<FailureDetails>
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[serde(rename_all = "kebab-case")]
 pub struct SMTPTLSReport {
-    #[serde(rename(deserialize = "organization-name"))]
     organization_name: String,
-    #[serde(rename(deserialize = "date-range"))]
     date_range: DateRange,
-    #[serde(rename(deserialize = "contact-info"))]
     contact_info: String,
-    #[serde(rename(deserialize = "report-id"))]
     report_id: String,
     policies: Vec<PoliciesItem>
 }
 
-pub async fn report_smtp_tls(req: HttpRequest, report: Json<SMTPTLSReport>) -> impl Responder {
-    if req.content_type() == "application/tlsrpt+json" || req.content_type() == "application/tlsrpt+gzip" {
-        info!("SMTP-TLS-RPT {}", serde_json::to_string_pretty(&report).unwrap());
-        HttpResponse::Ok()
-    } else {
-        error!("invalid content type: {}", req.content_type());
-        HttpResponse::BadRequest()
+pub async fn report_smtp_tls(report: Json<SMTPTLSReport>) -> impl Responder {
+    info!("SMTP-TLS-RPT {}", serde_json::to_string_pretty(&report).unwrap());
+    HttpResponse::Ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_report() {
+        // source: https://www.rfc-editor.org/rfc/rfc8460
+        let json = r#"{
+            "organization-name": "Company-X",
+            "date-range": {
+                "start-datetime": "2016-04-01T00:00:00Z",
+                "end-datetime": "2016-04-01T23:59:59Z"
+            },
+            "contact-info": "sts-reporting@company-x.example",
+            "report-id": "5065427c-23d3-47ca-b6e0-946ea0e8c4be",
+            "policies": [
+                {
+                    "policy": {
+                        "policy-type": "sts",
+                        "policy-string": [
+                            "version: STSv1",
+                            "mode: testing",
+                            "mx: *.mail.company-y.example",
+                            "max_age: 86400"
+                        ],
+                        "policy-domain": "company-y.example",
+                        "mx-host": ["*.mail.company-y.example"]
+                    },
+                    "summary": {
+                        "total-successful-session-count": 5326,
+                        "total-failure-session-count": 303
+                    },
+                    "failure-details": [
+                        {
+                            "result-type": "certificate-expired",
+                            "sending-mta-ip": "2001:db8:abcd:0012::1",
+                            "receiving-mx-hostname": "mx1.mail.company-y.example",
+                            "failed-session-count": 100
+                        }, 
+                        {
+                            "result-type": "starttls-not-supported",
+                            "sending-mta-ip": "2001:db8:abcd:0013::1",
+                            "receiving-mx-hostname": "mx2.mail.company-y.example",
+                            "receiving-ip": "203.0.113.56",
+                            "failed-session-count": 200,
+                            "additional-information": "https://reports.company-x.example/report_info ? id = 5065427 c - 23 d3# StarttlsNotSupported"
+                        }, 
+                        {
+                            "result-type": "validation-failure",
+                            "sending-mta-ip": "198.51.100.62",
+                            "receiving-ip": "203.0.113.58",
+                            "receiving-mx-hostname": "mx-backup.mail.company-y.example",
+                            "failed-session-count": 3,
+                            "failure-reason-code": "X509_V_ERR_PROXY_PATH_LENGTH_EXCEEDED"
+                        }
+                    ]
+                }
+            ]
+        }"#;
+        let res = serde_json::from_str::<SMTPTLSReport>(json);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), SMTPTLSReport { 
+            organization_name: "Company-X".to_string(), 
+            date_range: DateRange { 
+                start_datetime: "2016-04-01T00:00:00Z".to_string(),
+                end_datetime: "2016-04-01T23:59:59Z".to_string()
+            }, 
+            contact_info: "sts-reporting@company-x.example".to_string(), 
+            report_id: "5065427c-23d3-47ca-b6e0-946ea0e8c4be".to_string(), 
+            policies: vec![PoliciesItem { 
+                policy: Policy { 
+                    policy_type: PolicyType::STS, 
+                    policy_string: vec![
+                        "version: STSv1".to_string(),
+                        "mode: testing".to_string(),
+                        "mx: *.mail.company-y.example".to_string(),
+                        "max_age: 86400".to_string()
+                    ], 
+                    policy_domain: "company-y.example".to_string(), 
+                    mx_host: vec!["*.mail.company-y.example".to_string()]
+                }, 
+                summary: Summary { 
+                    total_successful_session_count: 5326,
+                    total_failure_session_count: 303
+                }, 
+                failure_details: vec![
+                    FailureDetails { 
+                        result_type: "certificate-expired".to_string(), 
+                        sending_mta_ip: "2001:db8:abcd:0012::1".to_string(), 
+                        receiving_mx_hostname: "mx1.mail.company-y.example".to_string(), 
+                        receiving_mx_helo: None,
+                        receiving_ip: None,
+                        failed_session_count: 100,
+                        additional_information: None,
+                        failure_reason_code: None
+                    },
+                    FailureDetails { 
+                        result_type: "starttls-not-supported".to_string(),
+                        sending_mta_ip: "2001:db8:abcd:0013::1".to_string(),
+                        receiving_mx_hostname: "mx2.mail.company-y.example".to_string(),
+                        receiving_mx_helo: None,
+                        receiving_ip: Some("203.0.113.56".to_string()),
+                        failed_session_count: 200,
+                        additional_information: Some("https://reports.company-x.example/report_info ? id = 5065427 c - 23 d3# StarttlsNotSupported".to_string()),
+                        failure_reason_code: None
+                    },
+                    FailureDetails { 
+                        result_type: "validation-failure".to_string(), 
+                        sending_mta_ip: "198.51.100.62".to_string(), 
+                        receiving_mx_hostname: "mx-backup.mail.company-y.example".to_string(), 
+                        receiving_mx_helo: None,
+                        receiving_ip: Some("203.0.113.58".to_string()),
+                        failed_session_count: 3, 
+                        additional_information: None,
+                        failure_reason_code: Some("X509_V_ERR_PROXY_PATH_LENGTH_EXCEEDED".to_string())
+                    }
+                ]
+            }]
+        })
     }
 }

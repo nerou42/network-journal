@@ -22,14 +22,18 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Report, ReportType};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Deprecation {
     id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     anticipated_removal: Option<String>,
     message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     source_file: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     line_number: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     column_number: Option<u64>
 }
 
@@ -40,5 +44,45 @@ pub async fn report_deprecation(report: Json<Report<Deprecation>>) -> impl Respo
     } else {
         error!("invalid report type: {:?}", report.r#type);
         HttpResponse::BadRequest()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_report() {
+        // source: https://wicg.github.io/deprecation-reporting/
+        let json = r#"{
+            "type": "deprecation",
+            "age": 32,
+            "url": "https://example.com/",
+            "user_agent": "Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0",
+            "body": {
+                "id": "websql",
+                "anticipatedRemoval": "2020-01-01",
+                "message": "WebSQL is deprecated and will be removed in Chrome 97 around January 2020",
+                "sourceFile": "https://example.com/index.js",
+                "lineNumber": 1234,
+                "columnNumber": 42
+            }
+        }"#;
+        let res = serde_json::from_str::<Report<Deprecation>>(json);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), Report {
+            r#type: ReportType::Deprecation,
+            body: Deprecation {
+                id: "websql".to_string(),
+                anticipated_removal: Some("2020-01-01".to_string()),
+                message: "WebSQL is deprecated and will be removed in Chrome 97 around January 2020".to_string(),
+                source_file: Some("https://example.com/index.js".to_string()),
+                line_number: Some(1234),
+                column_number: Some(42)
+            },
+            age: Some(32),
+            url: "https://example.com/".to_string(),
+            user_agent: Some("Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0".to_string()),
+        })
     }
 }

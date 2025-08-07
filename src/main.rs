@@ -27,14 +27,28 @@ use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use serde::Deserialize;
 use simple_logger::SimpleLogger;
 
-use crate::{config::NetworkJournalConfig, crash::report_crash, csp::report_csp, deprecation::report_deprecation, dmarc::IMAPClient, nel::report_nel, smtp_tls::report_smtp_tls};
+use crate::{
+    config::NetworkJournalConfig, 
+    crash::report_crash, 
+    csp::report_csp, 
+    deprecation::report_deprecation,
+    dmarc::IMAPClient, 
+    integrity::report_integrity, 
+    intervention::report_intervention, 
+    nel::report_nel, 
+    permissions::report_permissions, 
+    smtp_tls::report_smtp_tls
+};
 
 mod config;
 mod crash;
 mod csp;
 mod deprecation;
 mod dmarc;
+mod integrity;
+mod intervention;
 mod nel;
+mod permissions;
 mod smtp_tls;
 
 #[derive(Parser, Debug)]
@@ -47,29 +61,31 @@ struct Args {
 #[derive(Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "kebab-case")]
 enum ReportType {
-    #[serde(rename(deserialize = "crash"))]
     Crash,
-    #[serde(rename(deserialize = "csp-violation"))]
+    #[serde(rename = "csp-hash")]
+    CSPHash,
+    #[serde(rename = "csp-violation")]
     CSPViolation,
-    #[serde(rename(deserialize = "deprecation"))]
     Deprecation,
-    #[serde(rename(deserialize = "integrity-violation"))]
     IntegrityViolation,
-    #[serde(rename(deserialize = "intervention"))]
     Intervention,
-    #[serde(rename(deserialize = "network-error"))]
     NetworkError,
+    PermissionsPolicyViolation,
 }
 
-#[allow(unused)]
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq, Eq, Debug)]
+struct ReportTypeInference {
+    r#type: ReportType
+}
+
+#[derive(Deserialize, PartialEq, Eq, Debug)]
 struct Report<T> {
-    //context: object,
     r#type: ReportType,
-    //destination: String,
     body: T,
+    #[serde(skip_serializing_if = "Option::is_none")]
     age: Option<u32>,
     url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     user_agent: Option<String>
 }
 
@@ -151,17 +167,30 @@ async fn main() -> std::io::Result<()> {
                     }
                 })
             })
-            .service(resource("/crash").post(report_crash))
+            .service(resource("/crash")
+                .guard(Header("content-type", "application/reports+json"))
+                .post(report_crash))
             .service(resource("/csp")
                 .guard(guard::Any(Header("content-type", "application/reports+json")).or(Header("content-type", "application/csp-report")))
                 .post(report_csp))
             .service(resource("/deprecation")
                 .guard(Header("content-type", "application/reports+json"))
                 .post(report_deprecation))
+            .service(resource("/integrity")
+                .guard(Header("content-type", "application/reports+json"))
+                .post(report_integrity))
+            .service(resource("/intervention")
+                .guard(Header("content-type", "application/reports+json"))
+                .post(report_intervention))
             .service(resource("/nel")
                 .guard(Header("content-type", "application/reports+json"))
                 .post(report_nel))
-            .service(resource("/tlsrpt").post(report_smtp_tls))
+            .service(resource("/permissions")
+                .guard(Header("content-type", "application/reports+json"))
+                .post(report_permissions))
+            .service(resource("/tlsrpt")
+                .guard(guard::Any(Header("content-type", "application/tlsrpt+gzip")).or(Header("content-type", "application/tlsrpt+json")))
+                .post(report_smtp_tls))
     });
     let bound_server = if cfg.tls.enable && cfg.tls.key.is_some() && cfg.tls.cert.is_some() {
         let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();

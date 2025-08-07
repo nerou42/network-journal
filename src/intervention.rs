@@ -23,34 +23,23 @@ use serde::{Deserialize, Serialize};
 use crate::{Report, ReportType};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
-#[serde(rename = "snake_case")]
-pub enum CrashReason {
-    #[serde(rename = "oom")]
-    OutOfMemory,
-    Unresponsive
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
-#[serde(rename_all = "lowercase")]
-pub enum PageVisibility {
-    Visible,
-    Hidden
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
-pub struct Crash {
-    reason: CrashReason,
+#[serde(rename_all = "camelCase")]
+pub struct Intervention {
+    /// supposed to be used for grouping/counting
+    id: String,
+    /// human readable
+    message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    stack: Option<String>,
+    source_file: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    is_top_level: Option<bool>,
-    #[serde(alias = "visibility_state", skip_serializing_if = "Option::is_none")]
-    page_visibility: Option<PageVisibility>
+    line_number: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    column_number: Option<u64>,
 }
 
-pub async fn report_crash(report: Json<Report<Crash>>) -> impl Responder {
-    if report.r#type == ReportType::Crash {
-        info!("CRASH {}", serde_json::to_string_pretty(&report.body).unwrap());
+pub async fn report_intervention(report: Json<Report<Intervention>>) -> impl Responder {
+    if report.r#type == ReportType::Intervention {
+        info!("Intervention {}", serde_json::to_string_pretty(&report.body).unwrap());
         HttpResponse::Ok()
     } else {
         error!("invalid report type: {:?}", report.r#type);
@@ -64,30 +53,34 @@ mod tests {
 
     #[test]
     fn parse_report() {
-        // source: https://wicg.github.io/crash-reporting/
+        // source: https://wicg.github.io/intervention-reporting/
         let json = r#"{
-            "type": "crash",
-            "age": 42,
+            "type": "intervention",
+            "age": 27,
             "url": "https://example.com/",
             "user_agent": "Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0",
             "body": {
-                "reason": "oom"
+                "id": "audio-no-gesture",
+                "message": "A request to play audio was blocked because it was not triggered by user activation (such as a click).",
+                "sourceFile": "https://example.com/index.js",
+                "lineNumber": 1234,
+                "columnNumber": 42
             }
         }"#;
-        let res = serde_json::from_str::<Report<Crash>>(json);
+        let res = serde_json::from_str::<Report<Intervention>>(json);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), Report {
-            r#type: ReportType::Crash,
-            body: Crash {
-                reason: CrashReason::OutOfMemory,
-                stack: None,
-                is_top_level: None,
-                page_visibility: None
+            r#type: ReportType::Intervention,
+            body: Intervention {
+                id: "audio-no-gesture".to_string(),
+                message: "A request to play audio was blocked because it was not triggered by user activation (such as a click).".to_string(),
+                source_file: Some("https://example.com/index.js".to_string()),
+                line_number: Some(1234),
+                column_number: Some(42)
             },
-            age: Some(42),
+            age: Some(27),
             url: "https://example.com/".to_string(),
             user_agent: Some("Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0".to_string()),
         })
     }
 }
-

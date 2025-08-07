@@ -1,0 +1,52 @@
+loki.source.file "network_journal" {
+    targets               = [{ __path__ = "/var/log/network-journal/network-journal.log" }]
+    forward_to            = [loki.process.network_journal.receiver]
+}
+
+loki.process "network_journal" {
+    forward_to = [loki.write.default.receiver]
+
+    stage.multiline {
+        firstline = "^\\d{4}-\\d{2}-"
+    }
+
+    stage.regex {
+        expression = "^(?P<time>\\S+) (?P<level>\\S+)\\s+\\[(?P<logger>\\S+)\\]\\s+(?P<report_type>\\S+) (?P<content>.*)$"
+    }
+
+    stage.labels {
+        values = {
+            level  = null,
+            logger = null,
+            report_type = null,
+        }
+    }
+
+    stage.match {
+        selector = "{logger!~\"network-journal::.*\"}"
+        action = "drop"
+    }
+
+    stage.static_labels {
+        values = {
+            service_name = "network-journal",
+        }
+    }
+
+    stage.timestamp {
+        source   = "time"
+        format   = "2006-01-02T15:04:05.000Z07:00"
+    }
+
+    stage.output {
+        source = "content"
+    }
+}
+
+// if you are using Alloy already, the following block might be present already
+loki.write "default" {
+    endpoint {
+        url = "http://<loki-host>/loki/api/v1/push"
+    }
+    external_labels = {}
+}
