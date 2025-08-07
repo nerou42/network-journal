@@ -89,7 +89,7 @@ pub async fn report_csp(req: HttpRequest, body: Payload) -> impl Responder {
                     match inferred_type {
                         Ok(inf_type) => (inf_type, str),
                         Err(err) => {
-                            error!("{}", err);
+                            error!("{} in {}", err, str);
                             return HttpResponse::BadRequest();
                         }
                     }
