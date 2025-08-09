@@ -23,7 +23,7 @@ loki.process "network_journal" {
     }
 
     stage.match {
-        selector = "{logger!~\"network-journal::.*\"}"
+        selector = "{logger!~\"network_journal::.*\"}"
         action = "drop"
     }
 

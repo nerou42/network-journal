@@ -13,6 +13,8 @@ With that, you can generate diagrams, configure alerts, you name it.
 
 ### Supported reports
 
+- [x] [COEP](https://html.spec.whatwg.org/multipage/browsers.html#coep) ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Embedder-Policy))
+- [x] [COOP](https://html.spec.whatwg.org/multipage/browsers.html#cross-origin-opener-policies) ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Opener-Policy))
 - [x] [Crash Reports](https://wicg.github.io/crash-reporting/) (in a context of websites)
 - [x] Content Security Policy (Level 1, [2](https://www.w3.org/TR/CSP2/) and [3](https://www.w3.org/TR/CSP3/)) reports ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP))
 - [x] [Deprecations](https://wicg.github.io/deprecation-reporting/) (in a context of websites)
@@ -28,6 +30,7 @@ With that, you can generate diagrams, configure alerts, you name it.
 - [x] Webserver listening to incoming reports
 - [x] Report validation
 - [ ] Filtering (e.g. for your own domains to prevent spam)
+- [ ] Derive additional data e.g. from user agent or URLs
 - [x] Log reports to file
 
 ### Supported installation methods
@@ -47,21 +50,33 @@ Run the executable once (with the `--config` parameter set to a path of your lik
 
 In the following, `network-journal.example.com` needs to be replaced with your network-journal domain while `example.com` needs to be replaced with your frontend or e-mail domain respectively.
 
-**Note**: All `Reporting-Endpoints` headers discussed below should be combined into one like so `Reporting-Endpoints: crash-reporting="...", "csp-endpoint="..."`.
+**Note**: All `Reporting-Endpoints` headers discussed below should be combined into one like so `Reporting-Endpoints: crash-reporting="...", "csp-endpoint="..."` or even `Reporting-Endpoints: default="https://network-journal.example.com/reporting-api"`. The same should be done for the `Report-To` header like so `Report-To: {"group": ...}, {"group": ...}`.
+
+### COEP
+
+Add the following HTTP headers to your HTTP responses:
+
+1. `Cross-Origin-Embedder-Policy: [...]; report-to="coep"`
+1. `Report-To: {"group": "coep", "max_age": 2592000, "endpoints": [{ "url": "https://network-journal.example.com/reporting-api" }]}`
+
+### COOP
+
+Add the following HTTP headers to your HTTP responses:
+
+1. `Cross-Origin-Opener-Policy: [...]; report-to="coop"`
+1. `Report-To: {"group": "coop", "max_age": 2592000, "endpoints": [{ "url": "https://network-journal.example.com/reporting-api" }]}`
 
 ### Crash
 
 Add the following HTTP header to your HTTP responses:
 
-`Reporting-Endpoints: crash-reporting="https://network-journal.example.com/crash"`
-
-Note: Crash reports are delivered to the "crash-reporting" endpoint if existing or to the "default" endpoint otherwise, but that one might be used for deprecation reports (see below).
+`Reporting-Endpoints: crash-reporting="https://network-journal.example.com/reporting-api"`
 
 ### CSP (Content Security Policy)
 
 Add the following HTTP headers to your HTTP responses:
 
-1. `Reporting-Endpoints: csp-endpoint="https://network-journal.example.com/csp"`
+1. `Reporting-Endpoints: csp-endpoint="https://network-journal.example.com/reporting-api"`
 1. `Content-Security-Policy: [...]; report-to csp-endpoint`
     Since `report-to` is not yet supported by all browsers, you probably should do the following instead:
     `Content-Security-Policy: [...]; report-to csp-endpoint; report-uri https://network-journal.example.com/csp`
@@ -70,7 +85,7 @@ Add the following HTTP headers to your HTTP responses:
 
 Add the following HTTP header to your HTTP responses:
 
-`Reporting-Endpoints: default="https://network-journal.example.com/deprecation"`
+`Reporting-Endpoints: default="https://network-journal.example.com/reporting-api"`
 
 Note: At time of writing, deprecation reports are always delivered to the "default" endpoint.
 
@@ -78,7 +93,7 @@ Note: At time of writing, deprecation reports are always delivered to the "defau
 
 Add the following HTTP header to your HTTP responses:
 
-`Reporting-Endpoints: integrity-endpoint="https://network-journal.example.com/integrity"`
+`Reporting-Endpoints: integrity-endpoint="https://network-journal.example.com/reporting-api"`
 
 Note: You could also define a different endpoint and link it to your `Integrity-Policy` header using the `Integrity-Policy: blocked-destinations=..., endpoints="my-integrity-endpoint"` syntax.
 
@@ -86,7 +101,7 @@ Note: You could also define a different endpoint and link it to your `Integrity-
 
 Add the following HTTP header to your HTTP responses:
 
-`Reporting-Endpoints: default="https://network-journal.example.com/intervention"`
+`Reporting-Endpoints: default="https://network-journal.example.com/reporting-api"`
 
 Note: At time of writing, intervention reports are always delivered to the "default" endpoint.
 
@@ -100,7 +115,7 @@ Set the credentials for this mailbox in the configuration file.
 Add the following HTTP headers to your HTTP responses:
 
 1. `Report-To: { "group": "nel", "max_age": 31556952, "endpoints": [{ "url": "https://network-journal.example.com/nel" }]}` (deprecated) or
-    `Reporting-Endpoints: nel="https://network-journal.example.com/nel"` (not yet supported by all browsers)
+    `Reporting-Endpoints: nel="https://network-journal.example.com/reporting-api"` (not yet supported by all browsers)
 1. `NEL: { "report_to": "nel", "max_age": 31536000, "include_subdomains": true }`
 
 ### SMTP TLS
@@ -117,6 +132,8 @@ The received reports are logged in the following format:
 
 where `<report_type>` can be one of:
 
+- COEP
+- COOP
 - Crash
 - CSP
 - CSP-Hash

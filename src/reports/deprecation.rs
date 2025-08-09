@@ -16,11 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{web::Json, HttpResponse, Responder};
-use log::{error, info};
 use serde::{Deserialize, Serialize};
-
-use crate::{Report, ReportType};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -37,18 +33,10 @@ pub struct Deprecation {
     column_number: Option<u64>
 }
 
-pub async fn report_deprecation(report: Json<Report<Deprecation>>) -> impl Responder {
-    if report.r#type == ReportType::Deprecation {
-        info!("DEPRECATION {}", serde_json::to_string_pretty(&report.body).unwrap());
-        HttpResponse::Ok()
-    } else {
-        error!("invalid report type: {:?}", report.r#type);
-        HttpResponse::BadRequest()
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::reports::reporting_api::{Report, ReportType, ReportingApiReport};
+
     use super::*;
 
     #[test]
@@ -68,21 +56,20 @@ mod tests {
                 "columnNumber": 42
             }
         }"#;
-        let res = serde_json::from_str::<Report<Deprecation>>(json);
+        let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), Report {
-            r#type: ReportType::Deprecation,
-            body: Deprecation {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+            rpt: ReportType::Deprecation(Deprecation {
                 id: "websql".to_string(),
                 anticipated_removal: Some("2020-01-01".to_string()),
                 message: "WebSQL is deprecated and will be removed in Chrome 97 around January 2020".to_string(),
                 source_file: Some("https://example.com/index.js".to_string()),
                 line_number: Some(1234),
                 column_number: Some(42)
-            },
+            }),
             age: Some(32),
             url: "https://example.com/".to_string(),
             user_agent: Some("Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0".to_string()),
-        })
+        }));
     }
 }

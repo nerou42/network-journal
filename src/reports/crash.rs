@@ -16,11 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{web::Json, HttpResponse, Responder};
-use log::{error, info};
 use serde::{Deserialize, Serialize};
-
-use crate::{Report, ReportType};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename = "snake_case")]
@@ -39,27 +35,19 @@ pub enum PageVisibility {
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Crash {
-    reason: CrashReason,
+    pub reason: CrashReason,
     #[serde(skip_serializing_if = "Option::is_none")]
-    stack: Option<String>,
+    pub stack: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    is_top_level: Option<bool>,
+    pub is_top_level: Option<bool>,
     #[serde(alias = "visibility_state", skip_serializing_if = "Option::is_none")]
-    page_visibility: Option<PageVisibility>
-}
-
-pub async fn report_crash(report: Json<Report<Crash>>) -> impl Responder {
-    if report.r#type == ReportType::Crash {
-        info!("CRASH {}", serde_json::to_string_pretty(&report.body).unwrap());
-        HttpResponse::Ok()
-    } else {
-        error!("invalid report type: {:?}", report.r#type);
-        HttpResponse::BadRequest()
-    }
+    pub page_visibility: Option<PageVisibility>
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::reports::reporting_api::{Report, ReportType, ReportingApiReport};
+
     use super::*;
 
     #[test]
@@ -74,20 +62,18 @@ mod tests {
                 "reason": "oom"
             }
         }"#;
-        let res = serde_json::from_str::<Report<Crash>>(json);
+        let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), Report {
-            r#type: ReportType::Crash,
-            body: Crash {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+            rpt: ReportType::Crash(Crash {
                 reason: CrashReason::OutOfMemory,
                 stack: None,
                 is_top_level: None,
                 page_visibility: None
-            },
+            }),
             age: Some(42),
             url: "https://example.com/".to_string(),
             user_agent: Some("Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0".to_string()),
-        })
+        }));
     }
 }
-

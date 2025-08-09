@@ -2,7 +2,7 @@
 %global debug_package %{nil}
 
 Name:           network-journal
-Version:        0.2.0
+Version:        0.3.0
 Release:        1%{?dist}
 Summary:        Webserver and IMAP client to collect standardized browser and mailer reports
 
@@ -59,10 +59,10 @@ cargo test -r
 
 %files
 %license LICENSE.md
-%doc README.md CONTRIBUTING.md examples/
+%doc README.md CHANGELOG.md CONTRIBUTING.md examples/
 %attr(0755, root, root) %{_bindir}/%{name}
 %dir %attr(0755, root, root) %{_sysconfdir}/%{name}
-%ghost %config(noreplace) %attr(0600, root, root) %{_sysconfdir}/%{name}/%{name}.toml
+#%ghost %config(noreplace) %attr(0600, root, root) %{_sysconfdir}/%{name}/%{name}.yml
 %attr(0644, root, root) %{_unitdir}/%{name}.service
 %dir %attr(0755, root, root) %{_localstatedir}/log/%{name}
 %ghost %attr(0700, root, root) %{_localstatedir}/log/%{name}/%{name}.log

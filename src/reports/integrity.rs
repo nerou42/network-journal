@@ -16,11 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{web::Json, HttpResponse, Responder};
-use log::{error, info};
 use serde::{Deserialize, Serialize};
-
-use crate::{Report, ReportType};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -31,14 +27,4 @@ pub struct IntegrityViolation {
     blocked_url: String,
     destination: String,
     report_only: bool
-}
-
-pub async fn report_integrity(report: Json<Report<IntegrityViolation>>) -> impl Responder {
-    if report.r#type == ReportType::IntegrityViolation {
-        info!("IntegrityViolation {}", serde_json::to_string_pretty(&report.body).unwrap());
-        HttpResponse::Ok()
-    } else {
-        error!("invalid report type: {:?}", report.r#type);
-        HttpResponse::BadRequest()
-    }
 }

@@ -16,11 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{web::Json, HttpResponse, Responder};
-use log::{error, info};
 use serde::{Deserialize, Serialize};
-
-use crate::{Report, ReportType};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -37,14 +33,4 @@ pub struct PermissionsPolicyViolation {
     allow_attribute: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     src_attribute: Option<String>
-}
-
-pub async fn report_permissions(report: Json<Report<PermissionsPolicyViolation>>) -> impl Responder {
-    if report.r#type == ReportType::PermissionsPolicyViolation {
-        info!("PermissionsPolicyViolation {}", serde_json::to_string_pretty(&report.body).unwrap());
-        HttpResponse::Ok()
-    } else {
-        error!("invalid report type: {:?}", report.r#type);
-        HttpResponse::BadRequest()
-    }
 }
