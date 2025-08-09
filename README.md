@@ -89,6 +89,11 @@ Add the following HTTP header to your HTTP responses:
 
 Note: At time of writing, deprecation reports are always delivered to the "default" endpoint.
 
+### DMARC
+
+Add a DMARC DNS entry with a `rua` tag to send aggregate reports to some mailbox (it is recommended to create a mailbox solely for this purpose).
+Set the credentials for this mailbox in the configuration file.
+
 ### Integrity Policy
 
 Add the following HTTP header to your HTTP responses:
@@ -104,11 +109,6 @@ Add the following HTTP header to your HTTP responses:
 `Reporting-Endpoints: default="https://network-journal.example.com/reporting-api"`
 
 Note: At time of writing, intervention reports are always delivered to the "default" endpoint.
-
-### DMARC
-
-Add a DMARC DNS entry with a `rua` tag to send aggregate reports to some mailbox (it is recommended to create a mailbox solely for this purpose).
-Set the credentials for this mailbox in the configuration file.
 
 ### NEL (Network Error Logging)
 
@@ -138,6 +138,7 @@ where `<report_type>` can be one of:
 - CSP
 - CSP-Hash
 - Deprecation
+- DMARC
 - IntegrityViolation
 - Intervention
 - NEL

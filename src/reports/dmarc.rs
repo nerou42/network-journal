@@ -16,23 +16,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::{io::Read, net::TcpStream, str::from_utf8};
+use std::{io::{Cursor, Read}, net::TcpStream, str::{from_utf8, Utf8Error}};
 
 use flate2::read::GzDecoder;
 use imap::Session;
-use log::{debug, info};
+use log::debug;
 use mail_parser::{Message, MessageParser, MimeHeaders};
 use native_tls::TlsStream;
 use quick_xml::DeError;
 use serde::{Deserialize, Serialize};
+use zip::{result::ZipError, ZipArchive};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct DateRange {
     begin: u64,
     end: u64
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct ReportMetadata {
     org_name: String,
     email: String,
@@ -53,7 +54,7 @@ pub enum Alignment {
     Strict
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct PolicyPublished {
     domain: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -98,14 +99,14 @@ pub enum PolicyOverrideType {
     Other
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct PolicyOverrideReason {
     r#type: PolicyOverrideType,
     #[serde(skip_serializing_if = "Option::is_none")]
     comment: Option<String>
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct PolicyEvaluated {
     disposition: Disposition,
     dkim: DMARCResult,
@@ -114,7 +115,7 @@ pub struct PolicyEvaluated {
     reason: Vec<PolicyOverrideReason>
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Row {
     source_ip: String,
     count: u32,
@@ -122,7 +123,7 @@ pub struct Row {
     policy_evaluated: Vec<PolicyEvaluated>
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Identifier {
     #[serde(skip_serializing_if = "Option::is_none")]
     envelope_to: Option<String>,
@@ -146,7 +147,7 @@ pub enum DKIMResult {
     PermanentError
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct DKIMAuthResult {
     domain: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -178,7 +179,7 @@ pub enum SPFResult {
     PermanentError
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct SPFAuthResult {
     domain: String,
     /// required in RFC 7489
@@ -187,29 +188,40 @@ pub struct SPFAuthResult {
     result: SPFResult
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct AuthResult {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     dkim: Vec<DKIMAuthResult>,
     spf: Vec<SPFAuthResult>
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Record {
     row: Row,
     identifiers: Identifier,
     auth_results: AuthResult
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename = "feedback")]
 pub struct DMARCReport {
     #[serde(skip_serializing_if = "Option::is_none")]
-    version: Option<u64>,
+    version: Option<f32>,
     report_metadata: ReportMetadata,
     policy_published: PolicyPublished,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     record: Vec<Record>
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+pub enum DmarcError {
+    IMAP(imap::Error),
+    Utf8(Utf8Error),
+    Gzip(std::io::Error),
+    Zip(ZipError),
+    ZipRead(std::io::Error),
+    Parsing(DeError)
 }
 
 pub struct IMAPClient {
@@ -239,35 +251,33 @@ impl IMAPClient {
         })
     }
 
-    pub fn read(&mut self, query: &str) -> Result<Vec<DMARCReport>, imap::Error> {
+    pub fn read(&mut self, query: &str) -> Result<Vec<DMARCReport>, DmarcError> {
         // fetch message number 1 in this mailbox, along with its RFC822 field.
         // RFC 822 dictates the format of the body of e-mails
-        let search_results = self.session.uid_search(query)?;
+        let search_results = self.session.uid_search(query).map_err(|err| DmarcError::IMAP(err))?;
         if search_results.is_empty() {
             return Ok(vec![]);
         }
         let uid_set = search_results.iter().map(|uid| uid.to_string()).collect::<Vec<String>>().join(",");
-        debug!("UID set to fetch: {}", uid_set);
         let messages = self.session.uid_fetch(
             uid_set, 
             "RFC822"
-        ).expect("uid_fetch failed");
-        info!("got {} e-mail(s)", messages.len());
+        ).map_err(|err| DmarcError::IMAP(err))?;
+        debug!("got {} e-mail(s)", messages.len());
         let mut res = vec![];
         let reader = DMARCReader::new();
         for message in messages.iter() {
             if let Some(body) = message.body() {
-                info!("found e-mail");
+                debug!("found e-mail: {:?}", message.uid);
                 let message = MessageParser::default().parse(&body).unwrap();
-                if let Some(report) = reader.parse_message(&message).expect("Failed to parse XML report") {
+                if let Some(report) = reader.parse_message(&message)? {
                     res.push(report);
                 }
             }
         }
+        debug!("filtered e-mail count: {}", res.len());
         Ok(res)
     }
-
-    
 
     pub fn disconnect(&mut self) -> Result<(), imap::Error> {
         // be nice to the server and log out
@@ -287,24 +297,31 @@ impl DMARCReader {
         DMARCReader {}
     }
 
-    fn parse_message(&self, msg: &Message) -> Result<Option<DMARCReport>, DeError> {
+    fn parse_message(&self, msg: &Message) -> Result<Option<DMARCReport>, DmarcError> {
         if let Some(attachment) = msg.attachment(0) {
             let mut xml: String = String::new();
             if attachment.is_content_type("text", "xml") {
-                xml = from_utf8(attachment.contents()).expect("failed to decode UTF-8 XML attachment").to_string();
+                xml = from_utf8(attachment.contents()).map_err(|err| DmarcError::Utf8(err))?.to_string();
             } else if attachment.is_content_type("application", "gzip") {
                 let mut decoder = GzDecoder::new(attachment.contents());
-                decoder.read_to_string(&mut xml).expect("failed to decompress GZIP XML attachment");
+                decoder.read_to_string(&mut xml).map_err(|err| DmarcError::Gzip(err))?;
+            } else if attachment.is_content_type("application", "zip") {
+                let reader = Cursor::new(attachment.contents());
+                let mut archive = ZipArchive::new(reader).map_err(|err| DmarcError::Zip(err))?;
+                archive.by_index(0).unwrap().read_to_string(&mut xml).map_err(|err| DmarcError::ZipRead(err))?;
             } else {
+                debug!("unexpected content type: {:?}", attachment.content_type());
                 return Ok(None);
             }
             return self.parse_report(&xml).map(|res| Some(res));
+        } else {
+            debug!("no attachment found");
         }
         return Ok(None);
     }
 
-    fn parse_report(&self, xml: &str) -> Result<DMARCReport, DeError> {
-        quick_xml::de::from_str(xml)
+    fn parse_report(&self, xml: &str) -> Result<DMARCReport, DmarcError> {
+        quick_xml::de::from_str(xml).map_err(|err| DmarcError::Parsing(err))
     }
 }
 
