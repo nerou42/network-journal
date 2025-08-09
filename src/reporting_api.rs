@@ -1,12 +1,44 @@
+/**
+ * network-journal - collect network reports and print them to file
+ * Copyright (C) 2025 nerou GmbH
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 use actix_web::{web::Json, HttpResponse, Responder};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
-use crate::{crash::Crash, csp::{CSPHash, CSPViolation}, deprecation::Deprecation, integrity::IntegrityViolation, intervention::Intervention, nel::NetworkError, permissions::PermissionsPolicyViolation};
+use crate::{
+    coep::CrossOriginEmbedderPolicyViolation, 
+    coop::CrossOriginOpenerPolicyViolation, 
+    crash::Crash, 
+    csp::{CSPHash, CSPViolation}, 
+    deprecation::Deprecation, 
+    integrity::IntegrityViolation, 
+    intervention::Intervention, 
+    nel::NetworkError, 
+    permissions::PermissionsPolicyViolation
+};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "kebab-case", tag = "type", content = "body")]
 pub enum ReportType {
+    #[serde(rename = "coep")]
+    COEP(CrossOriginEmbedderPolicyViolation),
+    #[serde(rename = "coop")]
+    COOP(CrossOriginOpenerPolicyViolation),
     Crash(Crash),
     #[serde(rename = "csp-hash")]
     CSPHash(CSPHash),
@@ -40,6 +72,8 @@ pub enum ReportingApiReport {
 async fn handle_report(report: &Report) -> Result<(), serde_json::Error> {
     serde_json::to_string_pretty(report).map(|serialized_report| {
         match report.rpt {
+            ReportType::COEP(_) => info!("COEP {}", serialized_report),
+            ReportType::COOP(_) => info!("COOP {}", serialized_report),
             ReportType::Crash(_) => info!("Crash {}", serialized_report),
             ReportType::CSPHash(_) => info!("CSP-Hash {}", serialized_report),
             ReportType::CSPViolation(_) => info!("CSP {}", serialized_report),

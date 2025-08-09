@@ -34,6 +34,8 @@ use crate::{
 
 mod config;
 mod reporting_api;
+mod coep;
+mod coop;
 mod crash;
 mod csp;
 mod deprecation;
