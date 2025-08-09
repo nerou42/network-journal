@@ -20,36 +20,37 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct Intervention {
-    /// supposed to be used for grouping/counting
+pub struct Deprecation {
     id: String,
-    /// human readable
+    #[serde(skip_serializing_if = "Option::is_none")]
+    anticipated_removal: Option<String>,
     message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     source_file: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     line_number: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    column_number: Option<u64>,
+    column_number: Option<u64>
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::reporting_api::{Report, ReportType, ReportingApiReport};
+    use crate::reports::reporting_api::{Report, ReportType, ReportingApiReport};
 
     use super::*;
 
     #[test]
     fn parse_report() {
-        // source: https://wicg.github.io/intervention-reporting/
+        // source: https://wicg.github.io/deprecation-reporting/
         let json = r#"{
-            "type": "intervention",
-            "age": 27,
+            "type": "deprecation",
+            "age": 32,
             "url": "https://example.com/",
             "user_agent": "Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0",
             "body": {
-                "id": "audio-no-gesture",
-                "message": "A request to play audio was blocked because it was not triggered by user activation (such as a click).",
+                "id": "websql",
+                "anticipatedRemoval": "2020-01-01",
+                "message": "WebSQL is deprecated and will be removed in Chrome 97 around January 2020",
                 "sourceFile": "https://example.com/index.js",
                 "lineNumber": 1234,
                 "columnNumber": 42
@@ -58,14 +59,15 @@ mod tests {
         let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
         assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
-            rpt: ReportType::Intervention(Intervention {
-                id: "audio-no-gesture".to_string(),
-                message: "A request to play audio was blocked because it was not triggered by user activation (such as a click).".to_string(),
+            rpt: ReportType::Deprecation(Deprecation {
+                id: "websql".to_string(),
+                anticipated_removal: Some("2020-01-01".to_string()),
+                message: "WebSQL is deprecated and will be removed in Chrome 97 around January 2020".to_string(),
                 source_file: Some("https://example.com/index.js".to_string()),
                 line_number: Some(1234),
                 column_number: Some(42)
             }),
-            age: Some(27),
+            age: Some(32),
             url: "https://example.com/".to_string(),
             user_agent: Some("Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0".to_string()),
         }));

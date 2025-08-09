@@ -78,7 +78,7 @@ pub struct CrossOriginOpenerPolicyViolation {
 
 #[cfg(test)]
 mod tests {
-    use crate::reporting_api::{Report, ReportType, ReportingApiReport};
+    use crate::reports::reporting_api::{Report, ReportType, ReportingApiReport};
 
     use super::*;
 

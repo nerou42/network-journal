@@ -30,6 +30,7 @@ With that, you can generate diagrams, configure alerts, you name it.
 - [x] Webserver listening to incoming reports
 - [x] Report validation
 - [ ] Filtering (e.g. for your own domains to prevent spam)
+- [ ] Derive additional data e.g. from user agent or URLs
 - [x] Log reports to file
 
 ### Supported installation methods
@@ -49,7 +50,7 @@ Run the executable once (with the `--config` parameter set to a path of your lik
 
 In the following, `network-journal.example.com` needs to be replaced with your network-journal domain while `example.com` needs to be replaced with your frontend or e-mail domain respectively.
 
-**Note**: All `Reporting-Endpoints` headers discussed below should be combined into one like so `Reporting-Endpoints: crash-reporting="...", "csp-endpoint="..."`. The same should be done for the `Report-To` header like so `Report-To: {"group": ...}, {"group": ....}`.
+**Note**: All `Reporting-Endpoints` headers discussed below should be combined into one like so `Reporting-Endpoints: crash-reporting="...", "csp-endpoint="..."` or even `Reporting-Endpoints: default="https://network-journal.example.com/reporting-api"`. The same should be done for the `Report-To` header like so `Report-To: {"group": ...}, {"group": ...}`.
 
 ### COEP
 

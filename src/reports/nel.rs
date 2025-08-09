@@ -51,7 +51,7 @@ pub struct NetworkError {
 
 #[cfg(test)]
 mod tests {
-    use crate::reporting_api::{Report, ReportingApiReport, ReportType};
+    use crate::reports::reporting_api::{Report, ReportingApiReport, ReportType};
 
     use super::*;
 

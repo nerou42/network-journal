@@ -20,7 +20,7 @@ use actix_web::{web::Payload, HttpMessage, HttpRequest, HttpResponse, Responder}
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
-use crate::{get_body_as_string, reporting_api::{handle_reporting_api_report, ReportingApiReport}};
+use crate::{get_body_as_string, reports::reporting_api::{handle_reporting_api_report, ReportingApiReport}};
 
 #[derive(Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -137,7 +137,7 @@ pub async fn report_csp(req: HttpRequest, body: Payload) -> impl Responder {
 
 #[cfg(test)]
 mod tests {
-    use crate::reporting_api::{Report, ReportType};
+    use crate::reports::reporting_api::{Report, ReportType};
 
     use super::*;
 

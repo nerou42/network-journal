@@ -20,7 +20,7 @@ use actix_web::{web::Json, HttpResponse, Responder};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
-use crate::{
+use crate::reports::{
     coep::CrossOriginEmbedderPolicyViolation, 
     coop::CrossOriginOpenerPolicyViolation, 
     crash::Crash, 
@@ -117,7 +117,7 @@ pub async fn reporting_api(reports: Json<ReportingApiReport>) -> impl Responder 
 
 #[cfg(test)]
 mod tests {
-    use crate::crash::CrashReason;
+    use crate::reports::crash::CrashReason;
 
     use super::*;
 

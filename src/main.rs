@@ -27,23 +27,15 @@ use simple_logger::SimpleLogger;
 
 use crate::{
     config::NetworkJournalConfig, 
-    csp::report_csp,
-    reporting_api::reporting_api, 
-    smtp_tls::report_smtp_tls
+    reports::{
+        csp::report_csp,
+        reporting_api::reporting_api, 
+        smtp_tls::report_smtp_tls
+    }
 };
 
 mod config;
-mod reporting_api;
-mod coep;
-mod coop;
-mod crash;
-mod csp;
-mod deprecation;
-mod integrity;
-mod intervention;
-mod nel;
-mod permissions;
-mod smtp_tls;
+mod reports;
 
 #[derive(Parser, Debug)]
 #[command(version, author, about, long_about = "Copyright (C) 2025 nerou GmbH This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions.")]
