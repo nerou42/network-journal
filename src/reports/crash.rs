@@ -73,7 +73,7 @@ mod tests {
             }),
             age: Some(42),
             url: "https://example.com/".to_string(),
-            user_agent: Some("Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0".to_string()),
+            user_agent: Some("Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0".to_string())
         }));
     }
 }

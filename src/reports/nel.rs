@@ -95,7 +95,7 @@ mod tests {
             }),
             age: Some(0),
             url: "https://www.example.com/".to_string(),
-            user_agent: None,
+            user_agent: None
         }));
     }
 
@@ -139,7 +139,7 @@ mod tests {
             }),
             age: Some(0),
             url: "https://widget.com/thing.js".to_string(),
-            user_agent: None,
+            user_agent: None
         }));
     }
 
@@ -182,7 +182,7 @@ mod tests {
             }),
             age: Some(0),
             url: "https://new-subdomain.example.com/".to_string(),
-            user_agent: None,
+            user_agent: None
         }));
     }
 
@@ -227,7 +227,7 @@ mod tests {
             }),
             age: Some(0),
             url: "https://example.com/".to_string(),
-            user_agent: None,
+            user_agent: None
         }));
     }
 
@@ -274,7 +274,7 @@ mod tests {
             }),
             age: Some(0),
             url: "https://example.com/".to_string(),
-            user_agent: None,
+            user_agent: None
         }));
     }
 
@@ -321,7 +321,7 @@ mod tests {
             }),
             age: Some(0),
             url: "https://example.com/".to_string(),
-            user_agent: None,
+            user_agent: None
         }));
     }
 
@@ -364,7 +364,7 @@ mod tests {
             }),
             age: Some(0),
             url: "https://example.com/".to_string(),
-            user_agent: None,
+            user_agent: None
         }));
     }
 
@@ -407,7 +407,7 @@ mod tests {
             }),
             age: Some(0),
             url: "https://example.com/".to_string(),
-            user_agent: None,
+            user_agent: None
         }));
     }
 
@@ -450,7 +450,7 @@ mod tests {
             }),
             age: Some(0),
             url: "https://example.com/".to_string(),
-            user_agent: None,
+            user_agent: None
         }));
     }
 
@@ -493,7 +493,7 @@ mod tests {
             }),
             age: Some(0),
             url: "https://example.com/".to_string(),
-            user_agent: None,
+            user_agent: None
         }));
     }
 }

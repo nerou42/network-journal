@@ -17,8 +17,10 @@
  */
 
 use actix_web::{web::Json, HttpResponse, Responder};
-use log::info;
+use log::error;
 use serde::{Deserialize, Serialize};
+
+use crate::reports::{handle_report, ReportType};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -89,8 +91,14 @@ pub struct SMTPTLSReport {
 }
 
 pub async fn report_smtp_tls(report: Json<SMTPTLSReport>) -> impl Responder {
-    info!("SMTP-TLS-RPT {}", serde_json::to_string_pretty(&report).unwrap());
-    HttpResponse::Ok()
+    let res = handle_report(&ReportType::SMTPTLSRPT(&report)).await;
+    match res {
+        Ok(_) => HttpResponse::Ok(),
+        Err(err) => {
+            error!("failed to handle report(s): {} in {:?}", err, report);
+            HttpResponse::BadRequest()
+        }
+    }
 }
 
 #[cfg(test)]

@@ -17,19 +17,11 @@
  */
 
 use actix_web::{web::Json, HttpResponse, Responder};
-use log::{error, info};
+use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::reports::{
-    coep::CrossOriginEmbedderPolicyViolation, 
-    coop::CrossOriginOpenerPolicyViolation, 
-    crash::Crash, 
-    csp::{CSPHash, CSPViolation}, 
-    deprecation::Deprecation, 
-    integrity::IntegrityViolation, 
-    intervention::Intervention, 
-    nel::NetworkError, 
-    permissions::PermissionsPolicyViolation
+    self, coep::CrossOriginEmbedderPolicyViolation, coop::CrossOriginOpenerPolicyViolation, crash::Crash, csp::{CSPHash, CSPViolation}, deprecation::Deprecation, handle_report, integrity::IntegrityViolation, intervention::Intervention, nel::NetworkError, permissions::PermissionsPolicyViolation
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -59,7 +51,7 @@ pub struct Report {
     pub age: Option<u32>,
     pub url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub user_agent: Option<String>
+    pub user_agent: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -69,30 +61,13 @@ pub enum ReportingApiReport {
     Multi(Vec<Report>)
 }
 
-async fn handle_report(report: &Report) -> Result<(), serde_json::Error> {
-    serde_json::to_string_pretty(report).map(|serialized_report| {
-        match report.rpt {
-            ReportType::COEP(_) => info!("COEP {}", serialized_report),
-            ReportType::COOP(_) => info!("COOP {}", serialized_report),
-            ReportType::Crash(_) => info!("Crash {}", serialized_report),
-            ReportType::CSPHash(_) => info!("CSP-Hash {}", serialized_report),
-            ReportType::CSPViolation(_) => info!("CSP {}", serialized_report),
-            ReportType::Deprecation(_) => info!("Decprecation {}", serialized_report),
-            ReportType::IntegrityViolation(_) => info!("IntegrityViolation {}", serialized_report),
-            ReportType::Intervention(_) => info!("Intervention {}", serialized_report),
-            ReportType::NetworkError(_) => info!("NEL {}", serialized_report),
-            ReportType::PermissionsPolicyViolation(_) => info!("PermissionsPolicyViolation {}", serialized_report),
-        };
-    })
-}
-
 pub async fn handle_reporting_api_report(reports: &ReportingApiReport) -> Result<(), serde_json::Error> {
     match reports {
-        ReportingApiReport::Single(report) => handle_report(report).await,
+        ReportingApiReport::Single(report) => handle_report(&reports::ReportType::ReportingAPI(report)).await,
         ReportingApiReport::Multi(reports) => {
             let mut res = Ok(());
             for report in reports {
-                let handle_res = handle_report(report).await;
+                let handle_res = handle_report(&reports::ReportType::ReportingAPI(report)).await;
                 if handle_res.is_err() {
                     res = handle_res;
                     break;
@@ -104,8 +79,8 @@ pub async fn handle_reporting_api_report(reports: &ReportingApiReport) -> Result
 }
 
 pub async fn reporting_api(reports: Json<ReportingApiReport>) -> impl Responder {
-    let rpts = reports.into_inner();
-    let res = handle_reporting_api_report(&rpts).await;
+    let mut rpts = reports.into_inner();
+    let res = handle_reporting_api_report(&mut rpts).await;
     match res {
         Ok(_) => HttpResponse::Ok(),
         Err(err) => {
@@ -145,7 +120,7 @@ mod tests {
                 }),
                 age: Some(42),
                 url: "https://example.com/".to_string(),
-                user_agent: Some("Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0".to_string()),
+                user_agent: Some("Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0".to_string())
             }));
             let ser_res = serde_json::to_string_pretty(&report);
             assert!(ser_res.is_ok());
@@ -179,7 +154,7 @@ mod tests {
                 }),
                 age: Some(42),
                 url: "https://example.com/".to_string(),
-                user_agent: Some("Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0".to_string()),
+                user_agent: Some("Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0".to_string())
             }]));
             let ser_res = serde_json::to_string_pretty(&report);
             assert!(ser_res.is_ok());

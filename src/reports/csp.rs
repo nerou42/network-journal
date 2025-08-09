@@ -17,14 +17,14 @@
  */
 
 use actix_web::{web::Payload, HttpMessage, HttpRequest, HttpResponse, Responder};
-use log::{error, info};
+use log::error;
 use serde::{Deserialize, Serialize};
 
-use crate::{get_body_as_string, reports::reporting_api::{handle_reporting_api_report, ReportingApiReport}};
+use crate::{get_body_as_string, reports::{handle_report, reporting_api::{handle_reporting_api_report, ReportingApiReport}, ReportType}};
 
-#[derive(Deserialize, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "kebab-case")]
-struct CSPReport {
+pub struct CSPReport {
     csp_report: CSPViolation,
 }
 
@@ -87,8 +87,8 @@ pub async fn report_csp(req: HttpRequest, body: Payload) -> impl Responder {
                 Ok(str) => {
                     let report_parse_res = serde_json::from_str::<ReportingApiReport>(&str);
                     let handle_res = match report_parse_res {
-                        Ok(reports) => {
-                            handle_reporting_api_report(&reports).await
+                        Ok(mut reports) => {
+                            handle_reporting_api_report(&mut reports).await
                         },
                         Err(err) => {
                             error!("failed to parse report: {} in {}", err, str);
@@ -119,8 +119,14 @@ pub async fn report_csp(req: HttpRequest, body: Payload) -> impl Responder {
             };
             match parse_res {
                 Ok(report) => {
-                    info!("CSP {}", serde_json::to_string_pretty(&report.csp_report).unwrap());
-                    HttpResponse::Ok()
+                    let res = handle_report(&ReportType::CSPLvl2(&report)).await;
+                    match res {
+                        Ok(_) => HttpResponse::Ok(),
+                        Err(err) => {
+                            error!("failed to handle report(s): {} in {:?}", err, report);
+                            HttpResponse::BadRequest()
+                        }
+                    }
                 },
                 Err(err) => {
                     error!("failed to parse report: {}", err);
