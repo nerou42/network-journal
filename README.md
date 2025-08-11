@@ -9,6 +9,39 @@ To do that, this project contains a webserver, that will listen to incoming repo
 This log file can be read by your log monitoring tools like an ELK-stack or Grafana Loki. 
 With that, you can generate diagrams, configure alerts, you name it.
 
+```mermaid
+flowchart LR
+    browser("Browser") e1@-- CSP, NEL, Permission etc. reports ---> webserver
+    mailserver("E-Mail server") e2@-- SMTP TLS reports --> webserver
+    mailserver e3@-- DMARC reports --> mailbox("Mailbox")
+    mailbox e4@--> imap
+    
+    subgraph "network-journal"
+        webserver("Webserver") e11@--> processing("Processing
+        (filter, derive etc.)")
+        imap("IMAP client") e12@--> processing
+        processing e13@--> logfile("Log file")
+    end
+    
+    subgraph "ELK-stack/Grafana Loki/..."
+        logfile e21@--> monitoring("Log file 
+        parser")
+        monitoring e22@--> visualization("Visualization")
+        monitoring e23@--> alerting("Alerting")
+    end
+
+    e1@{ animation: slow }
+    e2@{ animation: slow }
+    e3@{ animation: slow }
+    e4@{ animation: slow }
+    e11@{ animation: slow }
+    e12@{ animation: slow }
+    e13@{ animation: slow }
+    e21@{ animation: slow }
+    e22@{ animation: slow }
+    e23@{ animation: slow }
+```
+
 ## Current state
 
 ### Supported reports
