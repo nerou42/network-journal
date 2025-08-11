@@ -16,6 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use log::info;
+ use serde::Serialize;
+
+use crate::{
+    processing::{filter::Filter, user_agent::{analyze_user_agent, Client, Device}}, reports::{csp::CSPReport, smtp_tls::SMTPTLSReport}
+};
+
 pub mod coep;
 pub mod coop;
 pub mod crash;
@@ -28,3 +35,69 @@ pub mod nel;
 pub mod permissions;
 pub mod reporting_api;
 pub mod smtp_tls;
+
+#[derive(Serialize, Debug)]
+#[serde(untagged)]
+enum ReportType<'a> {
+    ReportingAPI(&'a reporting_api::Report),
+    CSPLvl2(&'a CSPReport),
+    SMTPTLSRPT(&'a SMTPTLSReport)
+}
+
+#[derive(Serialize, Default, Debug)]
+struct Derived {
+    pub client: Client,
+    pub os: Client,
+    pub device: Device
+}
+
+#[derive(Serialize, Debug)]
+struct DecoratedReport<'a> {
+    report: &'a ReportType<'a>,
+    derived: Derived
+}
+
+async fn handle_report(report: &ReportType<'_>, filter: &Filter) -> Result<(), serde_json::Error> {
+    let mut decorated = DecoratedReport {
+        report: report,
+        derived: Derived::default()
+    };
+    
+    match report {
+        ReportType::ReportingAPI(rpt) => {
+            if filter.is_domain_allowed(&rpt.url) {
+
+                if let Some(user_agent) = &rpt.user_agent {
+                    (decorated.derived.client, decorated.derived.os, decorated.derived.device) = analyze_user_agent(&user_agent);
+                }
+
+                serde_json::to_string_pretty(&decorated).map(|serialized_report| {
+                    match rpt.rpt {
+                        reporting_api::ReportType::COEP(_) => info!("COEP {}", serialized_report),
+                        reporting_api::ReportType::COOP(_) => info!("COOP {}", serialized_report),
+                        reporting_api::ReportType::Crash(_) => info!("Crash {}", serialized_report),
+                        reporting_api::ReportType::CSPHash(_) => info!("CSP-Hash {}", serialized_report),
+                        reporting_api::ReportType::CSPViolation(_) => info!("CSP {}", serialized_report),
+                        reporting_api::ReportType::Deprecation(_) => info!("Decprecation {}", serialized_report),
+                        reporting_api::ReportType::IntegrityViolation(_) => info!("IntegrityViolation {}", serialized_report),
+                        reporting_api::ReportType::Intervention(_) => info!("Intervention {}", serialized_report),
+                        reporting_api::ReportType::NetworkError(_) => info!("NEL {}", serialized_report),
+                        reporting_api::ReportType::PermissionsPolicyViolation(_) => info!("PermissionsPolicyViolation {}", serialized_report),
+                    }
+                })
+            } else {
+                Ok(())
+            }
+        },
+        ReportType::CSPLvl2(_rpt) => {
+            serde_json::to_string_pretty(&decorated).map(|serialized_report| {
+                info!("CSP {}", serialized_report)
+            })
+        },
+        ReportType::SMTPTLSRPT(_rpt) => {
+            serde_json::to_string_pretty(&decorated).map(|serialized_report| {
+                info!("SMTP-TLS-RPT {}", serialized_report)
+            })
+        }
+    }
+}

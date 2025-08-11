@@ -17,14 +17,14 @@
  */
 
 use actix_web::{web::{Data, Payload}, HttpMessage, HttpRequest, HttpResponse, Responder};
-use log::{error, info};
+use log::error;
 use serde::{Deserialize, Serialize};
 
-use crate::{get_body_as_string, reports::reporting_api::{handle_reporting_api_report, ReportingApiReport}, WebState};
+use crate::{get_body_as_string, reports::{handle_report, reporting_api::{handle_reporting_api_report, ReportingApiReport}, ReportType}, WebState};
 
-#[derive(Deserialize, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "kebab-case")]
-struct CSPReport {
+pub struct CSPReport {
     csp_report: CSPViolation,
 }
 
@@ -119,8 +119,14 @@ pub async fn report_csp(state: Data<WebState>, req: HttpRequest, body: Payload) 
             };
             match parse_res {
                 Ok(report) => {
-                    info!("CSP {}", serde_json::to_string_pretty(&report.csp_report).unwrap());
-                    HttpResponse::Ok()
+                    let res = handle_report(&ReportType::CSPLvl2(&report), &state.filter).await;
+                    match res {
+                        Ok(_) => HttpResponse::Ok(),
+                        Err(err) => {
+                            error!("failed to handle report(s): {} in {:?}", err, report);
+                            HttpResponse::BadRequest()
+                        }
+                    }
                 },
                 Err(err) => {
                     error!("failed to parse report: {}", err);

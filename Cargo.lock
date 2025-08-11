@@ -1396,6 +1396,7 @@ dependencies = [
  "serde",
  "serde_json",
  "simple_logger",
+ "uaparser-rs",
  "url",
  "zip",
 ]
@@ -2115,6 +2116,17 @@ name = "typenum"
 version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1dccffe3ce07af9386bfd29e80c0ab1a8205a2fc34e4bcd40364df902cfa8f3f"
+
+[[package]]
+name = "uaparser-rs"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d7ff4720674499e287c2148e56309f885823b258a5bf78207c8a951b77361c9"
+dependencies = [
+ "regex",
+ "serde",
+ "serde_yaml",
+]
 
 [[package]]
 name = "unicode-ident"
