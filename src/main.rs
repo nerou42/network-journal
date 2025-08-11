@@ -19,7 +19,7 @@
 use std::{path::PathBuf, thread::{sleep, Builder}, time::Duration};
 
 use actix_cors::Cors;
-use actix_web::{dev::Service, guard::{self, Header}, http::header::{self, HeaderValue}, main, web::{resource, Payload}, App, HttpServer};
+use actix_web::{dev::Service, guard::{self, Header}, http::header::{self, HeaderValue}, main, web::{resource, Data, Payload}, App, HttpServer};
 use clap::{crate_name, crate_version, Parser};
 use futures_util::future::FutureExt;
 use log::{error, info, trace};
@@ -27,23 +27,24 @@ use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use simple_logger::SimpleLogger;
 
 use crate::{
-    config::NetworkJournalConfig, 
-    reports::{
-        csp::report_csp,
-        reporting_api::reporting_api, 
-        smtp_tls::report_smtp_tls,
-        dmarc::IMAPClient,
+    config::NetworkJournalConfig, processing::filter::Filter, reports::{
+        csp::report_csp, dmarc::IMAPClient, reporting_api::reporting_api, smtp_tls::report_smtp_tls
     }
 };
 
 mod config;
 mod reports;
+mod processing;
 
 #[derive(Parser, Debug)]
 #[command(version, author, about, long_about = "Copyright (C) 2025 nerou GmbH This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions.")]
 struct Args {
     #[arg(short, long, value_name="FILE.yml", default_value = "network-journal.yml")]
     config: PathBuf
+}
+
+struct WebState {
+    filter: Filter
 }
 
 async fn get_body_as_string(body: Payload) -> Result<String, String> {
@@ -109,14 +110,18 @@ async fn main() -> std::io::Result<()> {
         None
     };
 
+    let filter = Filter::new(cfg.filter.clone());
     let server_string: &'static str = format!("{}/{}", crate_name!(), crate_version!()).leak();
-    let server = HttpServer::new(|| {
+    let server = HttpServer::new(move || {
         let cors = Cors::default()
             .allow_any_origin()
             .allowed_methods(vec!["POST", "OPTIONS"])
             .allowed_header(header::CONTENT_TYPE);
         
         App::new()
+            .app_data(Data::new(WebState { 
+                filter: filter.clone()
+            }))
             .wrap(cors)
             .wrap_fn(|req, srv| {
                 srv.call(req).map(|res| {

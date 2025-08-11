@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{web::Payload, HttpMessage, HttpRequest, HttpResponse, Responder};
+use actix_web::{web::{Data, Payload}, HttpMessage, HttpRequest, HttpResponse, Responder};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
-use crate::{get_body_as_string, reports::reporting_api::{handle_reporting_api_report, ReportingApiReport}};
+use crate::{get_body_as_string, reports::reporting_api::{handle_reporting_api_report, ReportingApiReport}, WebState};
 
 #[derive(Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -80,7 +80,7 @@ pub struct CSPHash {
     destination: String
 }
 
-pub async fn report_csp(req: HttpRequest, body: Payload) -> impl Responder {
+pub async fn report_csp(state: Data<WebState>, req: HttpRequest, body: Payload) -> impl Responder {
     match req.content_type() {
         "application/reports+json" => {
             match get_body_as_string(body).await {
@@ -88,7 +88,7 @@ pub async fn report_csp(req: HttpRequest, body: Payload) -> impl Responder {
                     let report_parse_res = serde_json::from_str::<ReportingApiReport>(&str);
                     let handle_res = match report_parse_res {
                         Ok(reports) => {
-                            handle_reporting_api_report(&reports).await
+                            handle_reporting_api_report(&reports, &state.filter).await
                         },
                         Err(err) => {
                             error!("failed to parse report: {} in {}", err, str);

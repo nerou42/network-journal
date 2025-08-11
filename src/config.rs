@@ -20,14 +20,15 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NetworkJournalConfig {
     /// listen address, defaults to 127.0.0.1
     pub listen: String,
     /// defaults to 8080
     pub port: u16,
     pub tls: TlsConfig,
-    pub imap: ImapConfig
+    pub imap: ImapConfig,
+    pub filter: FilterConfig
 }
 
 impl Default for NetworkJournalConfig {
@@ -46,12 +47,15 @@ impl Default for NetworkJournalConfig {
                 port: 993,
                 username: "".to_string(),
                 password: "".to_string()
+            },
+            filter: FilterConfig {  
+                domain_whitelist: vec![]
             }
         }
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TlsConfig {
     /// default false
     pub enable: bool,
@@ -61,7 +65,7 @@ pub struct TlsConfig {
     pub key: Option<PathBuf>
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ImapConfig {
     /// default false
     pub enable: bool,
@@ -73,4 +77,11 @@ pub struct ImapConfig {
     pub username: String,
     /// IMAP password
     pub password: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct FilterConfig {
+    /// empty list allows all domains
+    #[serde(default)]
+    pub domain_whitelist: Vec<String>
 }

@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{web::Json, HttpResponse, Responder};
+use actix_web::{web::{Data, Json}, HttpResponse, Responder};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 
-use crate::reports::{
+use crate::{processing::filter::Filter, reports::{
     coep::CrossOriginEmbedderPolicyViolation, 
     coop::CrossOriginOpenerPolicyViolation, 
     crash::Crash, 
@@ -30,7 +30,7 @@ use crate::reports::{
     intervention::Intervention, 
     nel::NetworkError, 
     permissions::PermissionsPolicyViolation
-};
+}, WebState};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "kebab-case", tag = "type", content = "body")]
@@ -69,30 +69,34 @@ pub enum ReportingApiReport {
     Multi(Vec<Report>)
 }
 
-async fn handle_report(report: &Report) -> Result<(), serde_json::Error> {
-    serde_json::to_string_pretty(report).map(|serialized_report| {
-        match report.rpt {
-            ReportType::COEP(_) => info!("COEP {}", serialized_report),
-            ReportType::COOP(_) => info!("COOP {}", serialized_report),
-            ReportType::Crash(_) => info!("Crash {}", serialized_report),
-            ReportType::CSPHash(_) => info!("CSP-Hash {}", serialized_report),
-            ReportType::CSPViolation(_) => info!("CSP {}", serialized_report),
-            ReportType::Deprecation(_) => info!("Decprecation {}", serialized_report),
-            ReportType::IntegrityViolation(_) => info!("IntegrityViolation {}", serialized_report),
-            ReportType::Intervention(_) => info!("Intervention {}", serialized_report),
-            ReportType::NetworkError(_) => info!("NEL {}", serialized_report),
-            ReportType::PermissionsPolicyViolation(_) => info!("PermissionsPolicyViolation {}", serialized_report),
-        };
-    })
+async fn handle_report(report: &Report, filter: &Filter) -> Result<(), serde_json::Error> {
+    if filter.is_domain_allowed(&report.url) {
+        serde_json::to_string_pretty(report).map(|serialized_report| {
+            match report.rpt {
+                ReportType::COEP(_) => info!("COEP {}", serialized_report),
+                ReportType::COOP(_) => info!("COOP {}", serialized_report),
+                ReportType::Crash(_) => info!("Crash {}", serialized_report),
+                ReportType::CSPHash(_) => info!("CSP-Hash {}", serialized_report),
+                ReportType::CSPViolation(_) => info!("CSP {}", serialized_report),
+                ReportType::Deprecation(_) => info!("Decprecation {}", serialized_report),
+                ReportType::IntegrityViolation(_) => info!("IntegrityViolation {}", serialized_report),
+                ReportType::Intervention(_) => info!("Intervention {}", serialized_report),
+                ReportType::NetworkError(_) => info!("NEL {}", serialized_report),
+                ReportType::PermissionsPolicyViolation(_) => info!("PermissionsPolicyViolation {}", serialized_report),
+            };
+        })
+    } else {
+        Ok(())
+    }
 }
 
-pub async fn handle_reporting_api_report(reports: &ReportingApiReport) -> Result<(), serde_json::Error> {
+pub async fn handle_reporting_api_report(reports: &ReportingApiReport, filter: &Filter) -> Result<(), serde_json::Error> {
     match reports {
-        ReportingApiReport::Single(report) => handle_report(report).await,
+        ReportingApiReport::Single(report) => handle_report(report, filter).await,
         ReportingApiReport::Multi(reports) => {
             let mut res = Ok(());
             for report in reports {
-                let handle_res = handle_report(report).await;
+                let handle_res = handle_report(report, filter).await;
                 if handle_res.is_err() {
                     res = handle_res;
                     break;
@@ -103,9 +107,9 @@ pub async fn handle_reporting_api_report(reports: &ReportingApiReport) -> Result
     }
 }
 
-pub async fn reporting_api(reports: Json<ReportingApiReport>) -> impl Responder {
+pub async fn reporting_api(state: Data<WebState>, reports: Json<ReportingApiReport>) -> impl Responder {
     let rpts = reports.into_inner();
-    let res = handle_reporting_api_report(&rpts).await;
+    let res = handle_reporting_api_report(&rpts, &state.filter).await;
     match res {
         Ok(_) => HttpResponse::Ok(),
         Err(err) => {
