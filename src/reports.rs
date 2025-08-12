@@ -29,6 +29,7 @@ pub mod coop;
 pub mod crash;
 pub mod csp;
 pub mod deprecation;
+pub mod dmarc;
 pub mod integrity;
 pub mod intervention;
 pub mod nel;

@@ -26,7 +26,8 @@ pub struct NetworkJournalConfig {
     pub listen: String,
     /// defaults to 8080
     pub port: u16,
-    pub tls: TlsConfig
+    pub tls: TlsConfig,
+    pub imap: ImapConfig
 }
 
 impl Default for NetworkJournalConfig {
@@ -34,16 +35,13 @@ impl Default for NetworkJournalConfig {
         Self {
             listen: "127.0.0.1".to_string(),
             port: 8080,
-            tls: TlsConfig { 
-                enable: false, 
-                cert: None, 
-                key: None
-            }
+            tls: TlsConfig::default(),
+            imap: ImapConfig::default()
         }
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TlsConfig {
     /// default false
     pub enable: bool,
@@ -51,4 +49,40 @@ pub struct TlsConfig {
     pub cert: Option<PathBuf>,
     /// PEM encoded private key file
     pub key: Option<PathBuf>
+}
+
+impl Default for TlsConfig {
+    fn default() -> Self {
+        Self {
+            enable: false,
+            cert: None,
+            key: None
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ImapConfig {
+    /// default false
+    pub enable: bool,
+    /// IMAP host
+    pub host: String,
+    /// IMAP port, defaults to 993
+    pub port: u16,
+    /// IMAP username
+    pub username: String,
+    /// IMAP password
+    pub password: String,
+}
+
+impl Default for ImapConfig {
+    fn default() -> Self {
+        Self {
+            enable: false,
+            host: "127.0.0.1".to_string(),
+            port: 993,
+            username: "".to_string(),
+            password: "".to_string()
+        }
+    }
 }
