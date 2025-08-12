@@ -1,4 +1,3 @@
-use log::info;
 /**
  * network-journal - collect network reports and print them to file
  * Copyright (C) 2025 nerou GmbH
@@ -17,6 +16,7 @@ use log::info;
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use log::info;
 use serde::Serialize;
 
 use crate::{
