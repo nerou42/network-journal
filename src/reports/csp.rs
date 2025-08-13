@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{web::Payload, HttpMessage, HttpRequest, HttpResponse, Responder};
+use actix_web::{http::header, web::Payload, HttpMessage, HttpRequest, HttpResponse, Responder};
 use log::error;
 use serde::{Deserialize, Serialize};
 
@@ -40,8 +40,9 @@ pub enum CSPReportDisposition {
 pub struct CSPViolation {
     #[serde(alias = "document-uri", alias = "documentURL")]
     document_url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     referrer: Option<String>,
-    #[serde(alias = "blocked-uri", alias = "blockedURL")]
+    #[serde(alias = "blocked-uri", alias = "blockedURL", skip_serializing_if = "Option::is_none")]
     blocked_url: Option<String>,
     /// new in CSP2
     #[serde(alias = "effective-directive", alias = "effectiveDirective")]
@@ -115,7 +116,10 @@ pub async fn report_csp(req: HttpRequest, body: Payload) -> impl Responder {
                     let parse_res = serde_json::from_str::<CSPReport>(&str);
                     match parse_res {
                         Ok(report) => {
-                            let res = handle_report(&ReportType::CSPLvl2(&report)).await;
+                            let res = handle_report(
+                                &ReportType::CSPLvl2(&report), 
+                                req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap())
+                            ).await;
                             match res {
                                 Ok(_) => HttpResponse::Ok(),
                                 Err(err) => {

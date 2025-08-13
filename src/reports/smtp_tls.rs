@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{web::Json, HttpResponse, Responder};
+use actix_web::{http::header, web::Json, HttpRequest, HttpResponse, Responder};
 use log::error;
 use serde::{Deserialize, Serialize};
 
@@ -90,8 +90,11 @@ pub struct SMTPTLSReport {
     policies: Vec<PoliciesItem>
 }
 
-pub async fn report_smtp_tls(report: Json<SMTPTLSReport>) -> impl Responder {
-    let res = handle_report(&ReportType::SMTPTLSRPT(&report)).await;
+pub async fn report_smtp_tls(req: HttpRequest, report: Json<SMTPTLSReport>) -> impl Responder {
+    let res = handle_report(
+        &ReportType::SMTPTLSRPT(&report), 
+        req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap())
+    ).await;
     match res {
         Ok(_) => HttpResponse::Ok(),
         Err(err) => {

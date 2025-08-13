@@ -63,11 +63,11 @@ pub enum ReportingApiReport {
 
 pub async fn handle_reporting_api_report(reports: &ReportingApiReport) -> Result<(), serde_json::Error> {
     match reports {
-        ReportingApiReport::Single(report) => handle_report(&reports::ReportType::ReportingAPI(report)).await,
+        ReportingApiReport::Single(report) => handle_report(&reports::ReportType::ReportingAPI(report), None).await,
         ReportingApiReport::Multi(reports) => {
             let mut res = Ok(());
             for report in reports {
-                let handle_res = handle_report(&reports::ReportType::ReportingAPI(report)).await;
+                let handle_res = handle_report(&reports::ReportType::ReportingAPI(report), None).await;
                 if handle_res.is_err() {
                     res = handle_res;
                     break;

@@ -75,6 +75,9 @@ impl Device {
 }
 
 pub fn analyze_user_agent(user_agent: &str) -> (Client, Client, Device) {
+    #[cfg(debug_assertions)]
+    let path = "./regexes.yaml";
+    #[cfg(not(debug_assertions))]
     let path = "/usr/share/network-journal/regexes.yaml";
     if Path::new(path).exists() {
         let uap = UAParser::from_yaml(path).unwrap();

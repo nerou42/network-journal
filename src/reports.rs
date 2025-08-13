@@ -58,16 +58,19 @@ struct DecoratedReport<'a> {
     derived: Derived
 }
 
-async fn handle_report(report: &ReportType<'_>) -> Result<(), serde_json::Error> {
+async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>) -> Result<(), serde_json::Error> {
     let mut decorated = DecoratedReport {
         report: report,
         derived: Derived::default()
     };
+    if let Some(ua) = user_agent {
+        (decorated.derived.client, decorated.derived.os, decorated.derived.device) = analyze_user_agent(ua);
+    }
     
     match report {
         ReportType::ReportingAPI(rpt) => {
             if let Some(user_agent) = &rpt.user_agent {
-                (decorated.derived.client, decorated.derived.os, decorated.derived.device) = analyze_user_agent(&user_agent);
+                (decorated.derived.client, decorated.derived.os, decorated.derived.device) = analyze_user_agent(user_agent);
             }
             serde_json::to_string_pretty(&decorated).map(|serialized_report| {
                 match rpt.rpt {
