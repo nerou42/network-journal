@@ -110,20 +110,22 @@ pub async fn report_csp(req: HttpRequest, body: Payload) -> impl Responder {
             }
         },
         "application/csp-report" => {
-            let parse_res = match get_body_as_string(body).await {
-                Ok(str) => serde_json::from_str::<CSPReport>(&str),
-                Err(err) => {
-                    error!("{}", err);
-                    return HttpResponse::BadRequest();
-                }
-            };
-            match parse_res {
-                Ok(report) => {
-                    info!("CSP {}", serde_json::to_string_pretty(&report.csp_report).unwrap());
-                    HttpResponse::Ok()
+            match get_body_as_string(body).await {
+                Ok(str) => {
+                    let parse_res = serde_json::from_str::<CSPReport>(&str);
+                    match parse_res {
+                        Ok(report) => {
+                            info!("CSP {}", serde_json::to_string_pretty(&report.csp_report).unwrap());
+                            HttpResponse::Ok()
+                        },
+                        Err(err) => {
+                            error!("failed to parse report: {} in {}", err, str);
+                            HttpResponse::BadRequest()
+                        }
+                    }
                 },
                 Err(err) => {
-                    error!("failed to parse report: {}", err);
+                    error!("{}", err);
                     HttpResponse::BadRequest()
                 }
             }
