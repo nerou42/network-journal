@@ -90,6 +90,16 @@ pub struct SMTPTLSReport {
     policies: Vec<PoliciesItem>
 }
 
+impl SMTPTLSReport {
+    pub fn get_policy_domains(&self) -> Vec<&str> {
+        let mut domains: Vec<&str> = vec![];
+        for policy in &self.policies {
+            domains.push(&policy.policy.policy_domain);
+        }
+        domains
+    }
+}
+
 pub async fn report_smtp_tls(state: Data<WebState>, req: HttpRequest, report: Json<SMTPTLSReport>) -> impl Responder {
     let res = handle_report(
         &ReportType::SMTPTLSRPT(&report), 

@@ -19,6 +19,7 @@
 use std::path::Path;
 use serde::{Deserialize, Serialize};
 use uaparser_rs::UAParser;
+use url::ParseError;
 
 #[derive(Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Client {
@@ -57,11 +58,11 @@ impl Client {
 
 #[derive(Serialize, Deserialize, PartialEq, Default, Debug)]
 pub struct Device {
-  pub family: String,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub brand: Option<String>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub model: Option<String>
+    pub family: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub brand: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>
 }
 
 impl Device {
@@ -86,4 +87,20 @@ pub fn analyze_user_agent(user_agent: &str) -> (Client, Client, Device) {
     } else {
         (Client::default(), Client::default(), Device::default())
     }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Default, Debug)]
+pub struct Url {
+    pub host: Option<String>,
+    pub path: String,
+    pub query: Option<String>
+}
+
+pub fn analyze_url(url: &str) -> Result<Url, ParseError> {
+    let parsed_url = url::Url::parse(url)?;
+    Ok(Url {
+        host: parsed_url.host_str().map(|s| s.to_owned()),
+        path: parsed_url.path().to_owned(),
+        query: parsed_url.query().map(|s| s.to_owned())
+    })
 }

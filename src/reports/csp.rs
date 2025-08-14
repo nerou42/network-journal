@@ -25,7 +25,7 @@ use crate::{get_body_as_string, reports::{handle_report, reporting_api::{handle_
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct CSPReport {
-    csp_report: CSPViolation,
+    pub csp_report: CSPViolation,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
@@ -39,7 +39,7 @@ pub enum CSPReportDisposition {
 #[serde(rename_all(serialize = "camelCase"))]
 pub struct CSPViolation {
     #[serde(alias = "document-uri", alias = "documentURL")]
-    document_url: String,
+    pub document_url: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     referrer: Option<String>,
     #[serde(alias = "blocked-uri", alias = "blockedURL", skip_serializing_if = "Option::is_none")]

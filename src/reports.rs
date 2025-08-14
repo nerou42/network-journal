@@ -20,7 +20,7 @@ use log::info;
 use serde::Serialize;
 
 use crate::{
-    processing::{filter::Filter, user_agent::{analyze_user_agent, Client, Device}}, reports::{csp::CSPReport, smtp_tls::SMTPTLSReport}
+    processing::{filter::Filter, user_agent::{analyze_url, analyze_user_agent, Client, Device, Url}}, reports::{csp::CSPReport, smtp_tls::SMTPTLSReport}
 };
 
 pub mod coep;
@@ -48,7 +48,8 @@ enum ReportType<'a> {
 struct Derived {
     pub client: Client,
     pub os: Client,
-    pub device: Device
+    pub device: Device,
+    pub url: Url
 }
 
 #[derive(Serialize, Debug)]
@@ -69,6 +70,9 @@ async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter
     match report {
         ReportType::ReportingAPI(rpt) => {
             if filter.is_domain_allowed(&rpt.url) {
+                if let Ok(parsed_url) = analyze_url(&rpt.url) {
+                    decorated.derived.url = parsed_url;
+                }
                 if let Some(user_agent) = &rpt.user_agent {
                     (decorated.derived.client, decorated.derived.os, decorated.derived.device) = analyze_user_agent(&user_agent);
                 }
@@ -91,12 +95,20 @@ async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter
                 Ok(())
             }
         },
-        ReportType::CSPLvl2(_rpt) => {
-            serde_json::to_string_pretty(&decorated).map(|serialized_report| {
-                info!("CSP {}", serialized_report)
-            })
+        ReportType::CSPLvl2(rpt) => {
+            if filter.is_domain_allowed(&rpt.csp_report.document_url) {
+                if let Ok(parsed_url) = analyze_url(&rpt.csp_report.document_url) {
+                    decorated.derived.url = parsed_url;
+                }
+                serde_json::to_string_pretty(&decorated).map(|serialized_report| {
+                    info!("CSP {}", serialized_report)
+                })
+            } else {
+                Ok(())
+            }
         },
-        ReportType::SMTPTLSRPT(_rpt) => {
+        ReportType::SMTPTLSRPT(rpt) => {
+            decorated.derived.url.host = rpt.get_policy_domains().get(0).map(|s| s.to_string());
             serde_json::to_string_pretty(&decorated).map(|serialized_report| {
                 info!("SMTP-TLS-RPT {}", serialized_report)
             })
