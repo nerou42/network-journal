@@ -1,11 +1,11 @@
 [package]
 name = "network-journal"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["nerou GmbH"]
-description = "Collect network reports and print them to file"
+description = "Collect network reports (like CSP, NEL, DMARC etc.) and print them to file"
 repository = "https://github.com/nerou42/network-journal"
-license-file = "LICENSE.md"
-keywords = ["report", "csp", "nel", "dmarc", "smtp-tls"]
+license = "GPL-3.0"
+keywords = ["report", "csp", "nel", "dmarc", "smtp-tls", "reporting-api"]
 categories = ["network-programming", "web-programming"]
 edition = "2024"
 

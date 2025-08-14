@@ -2,7 +2,7 @@
 %global debug_package %{nil}
 
 Name:           network-journal
-Version:        0.3.0
+Version:        0.4.0
 Release:        1%{?dist}
 Summary:        Webserver and IMAP client to collect standardized browser and mailer reports
 
@@ -47,6 +47,7 @@ cargo tree --workspace --offline --edges no-build,no-dev,no-proc-macro --no-dedu
 install -m 0755 -p -D target/release/%{name} %{buildroot}%{_bindir}/%{name}
 install -m 0644 -p -D pkg/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
 install -m 0644 -p -D pkg/%{name}.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/%{name}
+install -m 0644 -p -D regexes.yaml %{buildroot}%{_datadir}/%{name}/regexes.yaml
 mkdir -p %{buildroot}%{_sysconfdir}/%{name}
 mkdir -p %{buildroot}%{_localstatedir}/log/%{name}
 
@@ -67,6 +68,7 @@ cargo test -r
 %dir %attr(0755, root, root) %{_localstatedir}/log/%{name}
 %ghost %attr(0700, root, root) %{_localstatedir}/log/%{name}/%{name}.log
 %attr(0644, root, root) %{_sysconfdir}/logrotate.d/%{name}
+%attr(0644, root, root) %{_datadir}/%{name}/regexes.yaml
 
 
 %changelog

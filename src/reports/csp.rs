@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{web::{Data, Payload}, HttpMessage, HttpRequest, HttpResponse, Responder};
+use actix_web::{http::header, web::{Data, Payload}, HttpMessage, HttpRequest, HttpResponse, Responder};
 use log::error;
 use serde::{Deserialize, Serialize};
 
@@ -40,8 +40,9 @@ pub enum CSPReportDisposition {
 pub struct CSPViolation {
     #[serde(alias = "document-uri", alias = "documentURL")]
     document_url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     referrer: Option<String>,
-    #[serde(alias = "blocked-uri", alias = "blockedURL")]
+    #[serde(alias = "blocked-uri", alias = "blockedURL", skip_serializing_if = "Option::is_none")]
     blocked_url: Option<String>,
     /// new in CSP2
     #[serde(alias = "effective-directive", alias = "effectiveDirective")]
@@ -110,26 +111,32 @@ pub async fn report_csp(state: Data<WebState>, req: HttpRequest, body: Payload) 
             }
         },
         "application/csp-report" => {
-            let parse_res = match get_body_as_string(body).await {
-                Ok(str) => serde_json::from_str::<CSPReport>(&str),
-                Err(err) => {
-                    error!("{}", err);
-                    return HttpResponse::BadRequest();
-                }
-            };
-            match parse_res {
-                Ok(report) => {
-                    let res = handle_report(&ReportType::CSPLvl2(&report), &state.filter).await;
-                    match res {
-                        Ok(_) => HttpResponse::Ok(),
+            match get_body_as_string(body).await {
+                Ok(str) => {
+                    let parse_res = serde_json::from_str::<CSPReport>(&str);
+                    match parse_res {
+                        Ok(report) => {
+                            let res = handle_report(
+                                &ReportType::CSPLvl2(&report), 
+                                req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap()),
+                                &state.filter
+                            ).await;
+                            match res {
+                                Ok(_) => HttpResponse::Ok(),
+                                Err(err) => {
+                                    error!("failed to handle report(s): {} in {:?}", err, report);
+                                    HttpResponse::BadRequest()
+                                }
+                            }
+                        },
                         Err(err) => {
-                            error!("failed to handle report(s): {} in {:?}", err, report);
+                            error!("failed to parse report: {} in {}", err, str);
                             HttpResponse::BadRequest()
                         }
                     }
                 },
                 Err(err) => {
-                    error!("failed to parse report: {}", err);
+                    error!("{}", err);
                     HttpResponse::BadRequest()
                 }
             }

@@ -17,7 +17,7 @@
  */
 
 use log::info;
- use serde::Serialize;
+use serde::Serialize;
 
 use crate::{
     processing::{filter::Filter, user_agent::{analyze_user_agent, Client, Device}}, reports::{csp::CSPReport, smtp_tls::SMTPTLSReport}
@@ -57,16 +57,18 @@ struct DecoratedReport<'a> {
     derived: Derived
 }
 
-async fn handle_report(report: &ReportType<'_>, filter: &Filter) -> Result<(), serde_json::Error> {
+async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: &Filter) -> Result<(), serde_json::Error> {
     let mut decorated = DecoratedReport {
         report: report,
         derived: Derived::default()
     };
+    if let Some(ua) = user_agent {
+        (decorated.derived.client, decorated.derived.os, decorated.derived.device) = analyze_user_agent(ua);
+    }
     
     match report {
         ReportType::ReportingAPI(rpt) => {
             if filter.is_domain_allowed(&rpt.url) {
-
                 if let Some(user_agent) = &rpt.user_agent {
                     (decorated.derived.client, decorated.derived.os, decorated.derived.device) = analyze_user_agent(&user_agent);
                 }

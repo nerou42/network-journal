@@ -36,21 +36,9 @@ impl Default for NetworkJournalConfig {
         Self {
             listen: "127.0.0.1".to_string(),
             port: 8080,
-            tls: TlsConfig { 
-                enable: false, 
-                cert: None, 
-                key: None
-            },
-            imap: ImapConfig { 
-                enable: false,
-                host: "127.0.0.1".to_string(),
-                port: 993,
-                username: "".to_string(),
-                password: "".to_string()
-            },
-            filter: FilterConfig {  
-                domain_whitelist: vec![]
-            }
+            tls: TlsConfig::default(),
+            imap: ImapConfig::default(),
+            filter: FilterConfig::default()
         }
     }
 }
@@ -63,6 +51,16 @@ pub struct TlsConfig {
     pub cert: Option<PathBuf>,
     /// PEM encoded private key file
     pub key: Option<PathBuf>
+}
+
+impl Default for TlsConfig {
+    fn default() -> Self {
+        Self {
+            enable: false,
+            cert: None,
+            key: None
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -79,9 +77,29 @@ pub struct ImapConfig {
     pub password: String,
 }
 
+impl Default for ImapConfig {
+    fn default() -> Self {
+        Self {
+            enable: false,
+            host: "127.0.0.1".to_string(),
+            port: 993,
+            username: "".to_string(),
+            password: "".to_string()
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FilterConfig {
     /// empty list allows all domains
     #[serde(default)]
     pub domain_whitelist: Vec<String>
+}
+
+impl Default for FilterConfig {
+    fn default() -> Self {
+        Self {
+            domain_whitelist: vec![]
+        }
+    }
 }
