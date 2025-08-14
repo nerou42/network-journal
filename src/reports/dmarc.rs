@@ -213,6 +213,16 @@ pub struct DMARCReport {
     record: Vec<Record>
 }
 
+impl DMARCReport {
+    pub fn get_published_policys_domain(&self) -> &String {
+        &self.policy_published.domain
+    }
+
+    pub fn get_sender_organisation(&self) -> &String {
+        &self.report_metadata.org_name
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum DmarcError {

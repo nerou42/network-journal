@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased](https://github.com/nerou42/network-journal/compare/v0.4.0...HEAD)
 
+### Added
+
+- Domain filter for incoming reports to block spam
+- Derivation of additional metrics:
+    - host, path and query of the origin URL
+    - browser name and version as well as OS name and version based on user agent
+
+### Changed
+
+- Default log level in service file from info to debug (actix logs validation errors as debug)
+
 
 ## [0.4.0](https://github.com/nerou42/network-journal/compare/v0.3.0...v0.4.0)
 

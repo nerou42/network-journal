@@ -22,13 +22,13 @@ use actix_cors::Cors;
 use actix_web::{dev::Service, guard::{self, Header}, http::header::{self, HeaderValue}, main, web::{resource, Data, Payload}, App, HttpServer};
 use clap::{crate_name, crate_version, Parser};
 use futures_util::future::FutureExt;
-use log::{error, info, trace};
+use log::{error, trace};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use simple_logger::SimpleLogger;
 
 use crate::{
     config::NetworkJournalConfig, processing::filter::Filter, reports::{
-        csp::report_csp, dmarc::IMAPClient, reporting_api::reporting_api, smtp_tls::report_smtp_tls
+        csp::report_csp, dmarc::IMAPClient, handle_report, reporting_api::reporting_api, smtp_tls::report_smtp_tls, ReportType
     }
 };
 
@@ -70,8 +70,10 @@ async fn main() -> std::io::Result<()> {
         Err(err) => panic!("config file could not be opened: {}", err)
     };
 
+    let filter = Filter::new(cfg.filter);
     let _imap_thread_handle = if cfg.imap.enable {
-        Some(Builder::new().name("imap".to_string()).spawn(move || {
+        let filter_imap = filter.clone();
+        Some(Builder::new().name("imap".to_string()).spawn(async move || {
             trace!("IMAP thread started");
 
             loop {
@@ -88,7 +90,9 @@ async fn main() -> std::io::Result<()> {
                         match imap_client.read("UNANSWERED UNSEEN UNDELETED UNDRAFT SUBJECT \"Report Domain:\"") {
                             Ok(reports) => {
                                 for report in reports {
-                                    info!("DMARC {}", serde_json::to_string_pretty(&report).unwrap());
+                                    if let Err(err) = handle_report(&ReportType::DMARC(&report), None, &filter_imap).await {
+                                        error!("failed to handle report(s): {}", err);
+                                    }
                                 }
                             },
                             Err(err) => error!("unable to read message: {:?}", err)
@@ -110,7 +114,6 @@ async fn main() -> std::io::Result<()> {
         None
     };
 
-    let filter = Filter::new(cfg.filter.clone());
     let server_string: &'static str = format!("{}/{}", crate_name!(), crate_version!()).leak();
     let server = HttpServer::new(move || {
         let cors = Cors::default()

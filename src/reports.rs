@@ -20,7 +20,8 @@ use log::info;
 use serde::Serialize;
 
 use crate::{
-    processing::{filter::Filter, user_agent::{analyze_url, analyze_user_agent, Client, Device, Url}}, reports::{csp::CSPReport, smtp_tls::SMTPTLSReport}
+    processing::{filter::Filter, user_agent::{analyze_url, analyze_user_agent, Client, Device, Url}}, 
+    reports::{csp::CSPReport, dmarc::DMARCReport, smtp_tls::SMTPTLSReport}
 };
 
 pub mod coep;
@@ -38,10 +39,11 @@ pub mod smtp_tls;
 
 #[derive(Serialize, Debug)]
 #[serde(untagged)]
-enum ReportType<'a> {
+pub enum ReportType<'a> {
     ReportingAPI(&'a reporting_api::Report),
     CSPLvl2(&'a CSPReport),
-    SMTPTLSRPT(&'a SMTPTLSReport)
+    SMTPTLSRPT(&'a SMTPTLSReport),
+    DMARC(&'a DMARCReport)
 }
 
 #[derive(Serialize, Default, Debug)]
@@ -58,7 +60,7 @@ struct DecoratedReport<'a> {
     derived: Derived
 }
 
-async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: &Filter) -> Result<(), serde_json::Error> {
+pub async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: &Filter) -> Result<(), serde_json::Error> {
     let mut decorated = DecoratedReport {
         report: report,
         derived: Derived::default()
@@ -69,7 +71,7 @@ async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter
     
     match report {
         ReportType::ReportingAPI(rpt) => {
-            if filter.is_domain_allowed(&rpt.url) {
+            if filter.is_domain_of_url_allowed(&rpt.url) {
                 if let Ok(parsed_url) = analyze_url(&rpt.url) {
                     decorated.derived.url = parsed_url;
                 }
@@ -96,7 +98,7 @@ async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter
             }
         },
         ReportType::CSPLvl2(rpt) => {
-            if filter.is_domain_allowed(&rpt.csp_report.document_url) {
+            if filter.is_domain_of_url_allowed(&rpt.csp_report.document_url) {
                 if let Ok(parsed_url) = analyze_url(&rpt.csp_report.document_url) {
                     decorated.derived.url = parsed_url;
                 }
@@ -109,8 +111,25 @@ async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter
         },
         ReportType::SMTPTLSRPT(rpt) => {
             decorated.derived.url.host = rpt.get_policy_domains().get(0).map(|s| s.to_string());
+            if let Some(host) = &decorated.derived.url.host {
+                if !filter.is_domain_allowed(host.as_str()) {
+                    return Ok(());
+                }
+            }
             serde_json::to_string_pretty(&decorated).map(|serialized_report| {
                 info!("SMTP-TLS-RPT {}", serialized_report)
+            })
+        },
+        ReportType::DMARC(rpt) => {
+            decorated.derived.url.host = Some(rpt.get_published_policys_domain().to_string());
+            if let Some(host) = &decorated.derived.url.host {
+                if !filter.is_domain_allowed(host.as_str()) {
+                    return Ok(());
+                }
+            }
+            decorated.derived.client.family = rpt.get_sender_organisation().to_string();
+            serde_json::to_string_pretty(&decorated).map(|serialized_report| {
+                info!("DMARC {}", serialized_report)
             })
         }
     }

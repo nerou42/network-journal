@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use log::trace;
+use log::debug;
 use url::Url;
 
 use crate::config::FilterConfig;
@@ -36,16 +36,21 @@ impl Filter {
     /**
      * Disallows invalid URLs and those without a host
      */
-    pub fn is_domain_allowed(&self, url: &str) -> bool {
+    pub fn is_domain_of_url_allowed(&self, url: &str) -> bool {
         if let Ok(parsed_url) = Url::parse(url) {
             if let Some(host) = parsed_url.host_str() {
-                if self.config.domain_whitelist.is_empty() || self.config.domain_whitelist.contains(&host.to_string()) {
-                    return true;
-                } else {
-                    trace!("got report for domain \"{}\", which is not whitelisted -> drop", host);
-                }
+                return self.is_domain_allowed(host);
             }
         }
         return false;
+    }
+
+    pub fn is_domain_allowed(&self, host: &str) -> bool {
+        if self.config.domain_whitelist.is_empty() || self.config.domain_whitelist.contains(&host.to_string()) {
+            return true;
+        } else {
+            debug!("got report for domain \"{}\", which is not whitelisted -> drop", host);
+            return false;
+        }
     }
 }
