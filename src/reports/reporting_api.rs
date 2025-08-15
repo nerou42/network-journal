@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{web::{Data, Json}, HttpResponse, Responder};
+use actix_web::{http::header, web::{Data, Json}, HttpRequest, HttpResponse, Responder};
 use log::error;
 use serde::{Deserialize, Serialize};
 
@@ -71,13 +71,13 @@ pub enum ReportingApiReport {
     Multi(Vec<Report>)
 }
 
-pub async fn handle_reporting_api_report(reports: &ReportingApiReport, filter: &Filter) -> Result<(), reports::Error> {
+pub async fn handle_reporting_api_report(reports: &ReportingApiReport, user_agent: Option<&str>, filter: &Filter) -> Result<(), reports::Error> {
     match reports {
-        ReportingApiReport::Single(report) => handle_report(&reports::ReportType::ReportingAPI(report), None, filter).await,
+        ReportingApiReport::Single(report) => handle_report(&reports::ReportType::ReportingAPI(report), user_agent, filter).await,
         ReportingApiReport::Multi(reports) => {
             let mut res = Ok(());
             for report in reports {
-                let handle_res = handle_report(&reports::ReportType::ReportingAPI(report), None, filter).await;
+                let handle_res = handle_report(&reports::ReportType::ReportingAPI(report), user_agent, filter).await;
                 if handle_res.is_err() {
                     res = handle_res;
                     break;
@@ -88,9 +88,9 @@ pub async fn handle_reporting_api_report(reports: &ReportingApiReport, filter: &
     }
 }
 
-pub async fn reporting_api(state: Data<WebState>, reports: Json<ReportingApiReport>) -> impl Responder {
+pub async fn reporting_api(state: Data<WebState>, req: HttpRequest, reports: Json<ReportingApiReport>) -> impl Responder {
     let rpts = reports.into_inner();
-    let res = handle_reporting_api_report(&rpts, &state.filter).await;
+    let res = handle_reporting_api_report(&rpts, req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap()), &state.filter).await;
     match res {
         Ok(_) => HttpResponse::Ok(),
         Err(err) => {
