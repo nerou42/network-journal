@@ -17,10 +17,10 @@
  */
 
 use actix_web::{http::header, web::{Data, Payload}, HttpMessage, HttpRequest, HttpResponse, Responder};
-use log::error;
+use log::{error, warn};
 use serde::{Deserialize, Serialize};
 
-use crate::{get_body_as_string, reports::{handle_report, reporting_api::{handle_reporting_api_report, ReportingApiReport}, ReportType}, WebState};
+use crate::{get_body_as_string, processing::filter::Filter, reports::{self, handle_report, reporting_api::{handle_reporting_api_report, ReportingApiReport}, ReportType}, WebState};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -81,32 +81,30 @@ pub struct CSPHash {
     destination: String
 }
 
+async fn handle_csp_lvl3_report(payload: &str, filter: &Filter) -> Result<(), reports::Error> {
+    let report_parse_res = serde_json::from_str::<ReportingApiReport>(payload);
+    match report_parse_res {
+        Ok(reports) => handle_reporting_api_report(&reports, filter).await,
+        Err(err) => Err(reports::Error::Parse(err))
+    }
+}
+
 pub async fn report_csp(state: Data<WebState>, req: HttpRequest, body: Payload) -> impl Responder {
     match req.content_type() {
         "application/reports+json" => {
             match get_body_as_string(body).await {
                 Ok(str) => {
-                    let report_parse_res = serde_json::from_str::<ReportingApiReport>(&str);
-                    let handle_res = match report_parse_res {
-                        Ok(reports) => {
-                            handle_reporting_api_report(&reports, &state.filter).await
-                        },
-                        Err(err) => {
-                            error!("failed to parse report: {} in {}", err, str);
-                            return HttpResponse::BadRequest();
-                        }
-                    };
-                    match handle_res {
+                    match handle_csp_lvl3_report(&str, &state.filter).await {
                         Ok(_) => HttpResponse::Ok(),
                         Err(err) => {
-                            error!("failed to handle report(s): {} in {:?}", err, str);
+                            error!("{} in {}", err, str);
                             HttpResponse::BadRequest()
                         }
                     }
                 },
                 Err(err) => {
                     error!("{}", err);
-                    return HttpResponse::BadRequest();
+                    HttpResponse::BadRequest()
                 }
             }
         },
@@ -124,14 +122,25 @@ pub async fn report_csp(state: Data<WebState>, req: HttpRequest, body: Payload) 
                             match res {
                                 Ok(_) => HttpResponse::Ok(),
                                 Err(err) => {
-                                    error!("failed to handle report(s): {} in {:?}", err, report);
+                                    error!("{} in {:?}", err, report);
                                     HttpResponse::BadRequest()
                                 }
                             }
                         },
-                        Err(err) => {
-                            error!("failed to parse report: {} in {}", err, str);
-                            HttpResponse::BadRequest()
+                        Err(err_csp2) => {
+                            // attempt to parse as CSP level 3 report
+                            match handle_csp_lvl3_report(&str, &state.filter).await {
+                                Ok(_) => {
+                                    warn!("got CSP level 3 report with CSP level 2 content type from user agent: {}", 
+                                        req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap()).unwrap_or("unknown"));
+                                    HttpResponse::Ok()
+                                },
+                                Err(err_csp3) => {
+                                    error!("\"{}\" while trying to parse as CSP level 2 and \"{}\" while trying to parse as CSP level 3 in {}", 
+                                        err_csp2, err_csp3, str);
+                                    HttpResponse::BadRequest()
+                                }
+                            }
                         }
                     }
                 },
@@ -142,7 +151,7 @@ pub async fn report_csp(state: Data<WebState>, req: HttpRequest, body: Payload) 
             }
         },
         ct => {
-            error!("unexpected content type: {} (UA: {:?})", ct, req.headers().get("User-Agent"));
+            error!("unexpected content type: {} (UA: {:?})", ct, req.headers().get(header::USER_AGENT));
             HttpResponse::BadRequest()
         }
     }

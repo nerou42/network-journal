@@ -71,7 +71,7 @@ pub enum ReportingApiReport {
     Multi(Vec<Report>)
 }
 
-pub async fn handle_reporting_api_report(reports: &ReportingApiReport, filter: &Filter) -> Result<(), serde_json::Error> {
+pub async fn handle_reporting_api_report(reports: &ReportingApiReport, filter: &Filter) -> Result<(), reports::Error> {
     match reports {
         ReportingApiReport::Single(report) => handle_report(&reports::ReportType::ReportingAPI(report), None, filter).await,
         ReportingApiReport::Multi(reports) => {
@@ -94,7 +94,7 @@ pub async fn reporting_api(state: Data<WebState>, reports: Json<ReportingApiRepo
     match res {
         Ok(_) => HttpResponse::Ok(),
         Err(err) => {
-            error!("failed to handle report(s): {} in {:?}", err, rpts);
+            error!("{} in {:?}", err, rpts);
             HttpResponse::BadRequest()
         }
     }

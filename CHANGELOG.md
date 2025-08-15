@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Default log level in service file from info to debug (actix logs validation errors as debug)
 
+### Fixed
+
+- Handling of CSP report with level 2 content type and level 3 payload
+
 
 ## [0.4.0](https://github.com/nerou42/network-journal/compare/v0.3.0...v0.4.0)
 

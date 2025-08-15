@@ -16,6 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use std::fmt::Display;
+
 use log::info;
 use serde::Serialize;
 
@@ -60,7 +62,22 @@ struct DecoratedReport<'a> {
     derived: Derived
 }
 
-pub async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: &Filter) -> Result<(), serde_json::Error> {
+#[derive(Debug)]
+pub enum Error {
+    Parse(serde_json::Error),
+    Serialize(serde_json::Error)
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::Parse(err) => write!(f, "failed to parse report: {}", err),
+            Error::Serialize(err) => write!(f, "failed to serialize report: {}", err)
+        }
+    }
+}
+
+pub async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: &Filter) -> Result<(), Error> {
     let mut decorated = DecoratedReport {
         report: report,
         derived: Derived::default()
@@ -69,6 +86,7 @@ pub async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, fi
         (decorated.derived.client, decorated.derived.os, decorated.derived.device) = analyze_user_agent(ua);
     }
     
+    let rpt_type_str: &str;
     match report {
         ReportType::ReportingAPI(rpt) => {
             if filter.is_domain_of_url_allowed(&rpt.url) {
@@ -79,22 +97,20 @@ pub async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, fi
                     (decorated.derived.client, decorated.derived.os, decorated.derived.device) = analyze_user_agent(&user_agent);
                 }
 
-                serde_json::to_string_pretty(&decorated).map(|serialized_report| {
-                    match rpt.rpt {
-                        reporting_api::ReportType::COEP(_) => info!("COEP {}", serialized_report),
-                        reporting_api::ReportType::COOP(_) => info!("COOP {}", serialized_report),
-                        reporting_api::ReportType::Crash(_) => info!("Crash {}", serialized_report),
-                        reporting_api::ReportType::CSPHash(_) => info!("CSP-Hash {}", serialized_report),
-                        reporting_api::ReportType::CSPViolation(_) => info!("CSP {}", serialized_report),
-                        reporting_api::ReportType::Deprecation(_) => info!("Decprecation {}", serialized_report),
-                        reporting_api::ReportType::IntegrityViolation(_) => info!("IntegrityViolation {}", serialized_report),
-                        reporting_api::ReportType::Intervention(_) => info!("Intervention {}", serialized_report),
-                        reporting_api::ReportType::NetworkError(_) => info!("NEL {}", serialized_report),
-                        reporting_api::ReportType::PermissionsPolicyViolation(_) => info!("PermissionsPolicyViolation {}", serialized_report),
-                    }
-                })
+                rpt_type_str = match rpt.rpt {
+                    reporting_api::ReportType::COEP(_) => "COEP",
+                    reporting_api::ReportType::COOP(_) => "COOP",
+                    reporting_api::ReportType::Crash(_) => "Crash",
+                    reporting_api::ReportType::CSPHash(_) => "CSP-Hash",
+                    reporting_api::ReportType::CSPViolation(_) => "CSP",
+                    reporting_api::ReportType::Deprecation(_) => "Decprecation",
+                    reporting_api::ReportType::IntegrityViolation(_) => "IntegrityViolation",
+                    reporting_api::ReportType::Intervention(_) => "Intervention",
+                    reporting_api::ReportType::NetworkError(_) => "NEL",
+                    reporting_api::ReportType::PermissionsPolicyViolation(_) => "PermissionsPolicyViolation",
+                };
             } else {
-                Ok(())
+                return Ok(());
             }
         },
         ReportType::CSPLvl2(rpt) => {
@@ -102,11 +118,9 @@ pub async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, fi
                 if let Ok(parsed_url) = analyze_url(&rpt.csp_report.document_url) {
                     decorated.derived.url = parsed_url;
                 }
-                serde_json::to_string_pretty(&decorated).map(|serialized_report| {
-                    info!("CSP {}", serialized_report)
-                })
+                rpt_type_str = "CSP";
             } else {
-                Ok(())
+                return Ok(());
             }
         },
         ReportType::SMTPTLSRPT(rpt) => {
@@ -116,9 +130,7 @@ pub async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, fi
                     return Ok(());
                 }
             }
-            serde_json::to_string_pretty(&decorated).map(|serialized_report| {
-                info!("SMTP-TLS-RPT {}", serialized_report)
-            })
+            rpt_type_str = "SMTP-TLS-RPT";
         },
         ReportType::DMARC(rpt) => {
             decorated.derived.url.host = Some(rpt.get_published_policys_domain().to_string());
@@ -128,9 +140,14 @@ pub async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, fi
                 }
             }
             decorated.derived.client.family = rpt.get_sender_organisation().to_string();
-            serde_json::to_string_pretty(&decorated).map(|serialized_report| {
-                info!("DMARC {}", serialized_report)
-            })
+            rpt_type_str = "DMARC";
         }
+    }
+    match serde_json::to_string_pretty(&decorated) {
+        Ok(serialized_report) => {
+            info!("{} {}", rpt_type_str, serialized_report);
+            Ok(())
+        },
+        Err(err) => Err(Error::Serialize(err))
     }
 }

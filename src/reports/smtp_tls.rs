@@ -109,7 +109,7 @@ pub async fn report_smtp_tls(state: Data<WebState>, req: HttpRequest, report: Js
     match res {
         Ok(_) => HttpResponse::Ok(),
         Err(err) => {
-            error!("failed to handle report(s): {} in {:?}", err, report);
+            error!("{} in {:?}", err, report);
             HttpResponse::BadRequest()
         }
     }

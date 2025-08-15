@@ -20,7 +20,7 @@ use std::{io::{Cursor, Read}, net::TcpStream, str::{from_utf8, Utf8Error}};
 
 use flate2::read::GzDecoder;
 use imap::Session;
-use log::debug;
+use log::{debug, trace};
 use mail_parser::{Message, MessageParser, MimeHeaders};
 use native_tls::TlsStream;
 use quick_xml::DeError;
@@ -273,19 +273,19 @@ impl IMAPClient {
             uid_set, 
             "RFC822"
         ).map_err(|err| DmarcError::IMAP(err))?;
-        debug!("got {} e-mail(s)", messages.len());
+        trace!("got {} e-mail(s)", messages.len());
         let mut res = vec![];
         let reader = DMARCReader::new();
         for message in messages.iter() {
             if let Some(body) = message.body() {
-                debug!("found e-mail: {:?}", message.uid);
+                trace!("found e-mail: {:?}", message.uid);
                 let message = MessageParser::default().parse(&body).unwrap();
                 if let Some(report) = reader.parse_message(&message)? {
                     res.push(report);
                 }
             }
         }
-        debug!("filtered e-mail count: {}", res.len());
+        trace!("filtered e-mail count: {}", res.len());
         Ok(res)
     }
 

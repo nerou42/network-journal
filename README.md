@@ -42,9 +42,9 @@ flowchart LR
     e23@{ animation: slow }
 ```
 
-## Current state
+## Current State
 
-### Supported reports
+### Supported Reports
 
 - [x] [COEP](https://html.spec.whatwg.org/multipage/browsers.html#coep) ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Embedder-Policy))
 - [x] [COOP](https://html.spec.whatwg.org/multipage/browsers.html#cross-origin-opener-policies) ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Opener-Policy))
@@ -58,15 +58,17 @@ flowchart LR
 - [x] [Integrity Policy](https://w3c.github.io/webappsec-subresource-integrity/)
 - [x] [Intervention Reports](https://wicg.github.io/intervention-reporting/)
 
-### Supported report handling
+### Supported Report Handling
 
 - [x] Webserver listening to incoming reports
 - [x] Report validation
-- [ ] Filtering (e.g. for your own domains to prevent spam)
-- [ ] Derive additional data e.g. from user agent or URLs
+- [x] Filtering by your own domains to prevent spam
+- [x] Derive additional metrics from...
+    - [x] user agent (browser name and version, OS name and version etc.)
+    - [x] origin/document URLs (host, path, query)
 - [x] Log reports to file
 
-### Supported installation methods
+### Supported Installation Methods
 
 - [x] Build from source
 - [x] Provide [systemd service file](pkg/network-journal.service)
@@ -157,7 +159,7 @@ Add the following DNS entry for your domain:
 
 `_smtp._tls.example.com IN TXT "v=TLSRPTv1; rua=https://network-journal.example.com/tlsrpt"`
 
-## Log format
+## Log Format
 
 The received reports are logged in the following format:
 
@@ -177,6 +179,58 @@ where `<report_type>` can be one of:
 - NEL
 - PermissionsPolicyViolation
 - SMTP-TLS-RPT
+
+and where `<report-content-as-json>` looks like this (using a CSP level 3 report as an example here):
+
+```json
+{
+    "report": {
+        "age": 53531,
+        "body": {
+            "blockedURL": "inline",
+            "columnNumber": 39,
+            "disposition": "enforce",
+            "documentURL": "https://example.com/csp-report",
+            "effectiveDirective": "script-src-elem",
+            "lineNumber": 121,
+            "originalPolicy": "default-src 'self'; report-to csp-endpoint-name",
+            "referrer": "https://www.google.com/",
+            "sample": "console.log(\"lo\")",
+            "sourceFile": "https://example.com/csp-report",
+            "statusCode": 200
+        },
+        "type": "csp-violation",
+        "url": "https://example.com/csp-report",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
+    },
+    "derived": {
+        "client": {
+            "family": "Chrome",
+            "major": 127,
+            "minor": 0,
+            "patch": 0,
+            "patch_minor": 0
+        },
+        "os": {
+            "family": "Windows",
+            "major": 10,
+            "minor": 0
+        },
+        "device": {
+            "family": "other"
+        },
+        "url": {
+            "host": "example.com",
+            "path": "/csp-report",
+            "query": ""
+        }
+    }
+}
+```
+
+### Log Levels
+
+All reports are logged at the `INFO` level. If you observe relevant log entries e.g. at the `DEBUG` (payload validation errors are logged by actix at this level) or `ERROR`, please let me know by filing an issue on GitHub.
 
 ## License
 

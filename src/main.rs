@@ -91,7 +91,7 @@ async fn main() -> std::io::Result<()> {
                             Ok(reports) => {
                                 for report in reports {
                                     if let Err(err) = handle_report(&ReportType::DMARC(&report), None, &filter_imap).await {
-                                        error!("failed to handle report(s): {}", err);
+                                        error!("{}", err);
                                     }
                                 }
                             },
