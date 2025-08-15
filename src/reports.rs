@@ -22,7 +22,7 @@ use log::info;
 use serde::Serialize;
 
 use crate::{
-    processing::{filter::Filter, user_agent::{analyze_url, analyze_user_agent, Client, Device, Url}}, 
+    processing::{filter::Filter, derivation::{analyze_url, analyze_user_agent, Client, Device, Url}}, 
     reports::{csp::CSPReport, dmarc::DMARCReport, smtp_tls::SMTPTLSReport}
 };
 
