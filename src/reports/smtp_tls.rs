@@ -105,7 +105,7 @@ pub async fn report_smtp_tls(state: Data<WebState>, req: HttpRequest, report: Js
         &ReportType::SMTPTLSRPT(&report), 
         req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap()),
         &state.filter
-    ).await;
+    );
     match res {
         Ok(_) => HttpResponse::Ok(),
         Err(err) => {

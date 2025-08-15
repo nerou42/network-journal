@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::{io::{Cursor, Read}, net::TcpStream, str::{from_utf8, Utf8Error}};
+use std::{fmt::Display, io::{Cursor, Read}, net::TcpStream, str::{from_utf8, Utf8Error}};
 
 use flate2::read::GzDecoder;
 use imap::Session;
@@ -232,6 +232,19 @@ pub enum DmarcError {
     Zip(ZipError),
     ZipRead(std::io::Error),
     Parsing(DeError)
+}
+
+impl Display for DmarcError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            DmarcError::IMAP(err) => write!(f, "{}", err),
+            DmarcError::Utf8(err) => write!(f, "{}", err),
+            DmarcError::Gzip(err) => write!(f, "{}", err),
+            DmarcError::Zip(err) => write!(f, "{}", err),
+            DmarcError::ZipRead(err) => write!(f, "{}", err),
+            DmarcError::Parsing(err) => write!(f, "{}", err),
+        }
+    }
 }
 
 pub struct IMAPClient {

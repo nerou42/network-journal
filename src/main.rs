@@ -73,7 +73,7 @@ async fn main() -> std::io::Result<()> {
     let filter = Filter::new(cfg.filter);
     let _imap_thread_handle = if cfg.imap.enable {
         let filter_imap = filter.clone();
-        Some(Builder::new().name("imap".to_string()).spawn(async move || {
+        Some(Builder::new().name("imap".to_string()).spawn(move || {
             trace!("IMAP thread started");
 
             loop {
@@ -90,12 +90,12 @@ async fn main() -> std::io::Result<()> {
                         match imap_client.read("UNANSWERED UNSEEN UNDELETED UNDRAFT SUBJECT \"Report Domain:\"") {
                             Ok(reports) => {
                                 for report in reports {
-                                    if let Err(err) = handle_report(&ReportType::DMARC(&report), None, &filter_imap).await {
+                                    if let Err(err) = handle_report(&ReportType::DMARC(&report), None, &filter_imap) {
                                         error!("{}", err);
                                     }
                                 }
                             },
-                            Err(err) => error!("unable to read message: {:?}", err)
+                            Err(err) => error!("unable to read message: {}", err)
                         };
                         if let Err(err) = imap_client.disconnect() {
                             error!("failed to disconnect from IMAP server: {}", err);

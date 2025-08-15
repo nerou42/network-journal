@@ -77,7 +77,7 @@ impl Display for Error {
     }
 }
 
-pub async fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: &Filter) -> Result<(), Error> {
+pub fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: &Filter) -> Result<(), Error> {
     let mut decorated = DecoratedReport {
         report: report,
         derived: Derived::default()

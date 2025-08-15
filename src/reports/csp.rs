@@ -20,7 +20,12 @@ use actix_web::{http::header, web::{Data, Payload}, HttpMessage, HttpRequest, Ht
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
 
-use crate::{get_body_as_string, processing::filter::Filter, reports::{self, handle_report, reporting_api::{handle_reporting_api_report, ReportingApiReport}, ReportType}, WebState};
+use crate::{
+    get_body_as_string, 
+    processing::filter::Filter, 
+    reports::{self, handle_report, reporting_api::{handle_reporting_api_report, ReportingApiReport}, ReportType}, 
+    WebState
+};
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -115,7 +120,7 @@ pub async fn report_csp(state: Data<WebState>, req: HttpRequest, body: Payload) 
                     let parse_res = serde_json::from_str::<CSPReport>(&str);
                     match parse_res {
                         Ok(report) => {
-                            let res = handle_report(&ReportType::CSPLvl2(&report), ua, &state.filter).await;
+                            let res = handle_report(&ReportType::CSPLvl2(&report), ua, &state.filter);
                             match res {
                                 Ok(_) => HttpResponse::Ok(),
                                 Err(err) => {
