@@ -237,12 +237,12 @@ pub enum DmarcError {
 impl Display for DmarcError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
-            DmarcError::IMAP(err) => write!(f, "{}", err),
-            DmarcError::Utf8(err) => write!(f, "{}", err),
-            DmarcError::Gzip(err) => write!(f, "{}", err),
-            DmarcError::Zip(err) => write!(f, "{}", err),
-            DmarcError::ZipRead(err) => write!(f, "{}", err),
-            DmarcError::Parsing(err) => write!(f, "{}", err),
+            DmarcError::IMAP(err) => write!(f, "DmarcError while working with IMAP: {}", err),
+            DmarcError::Utf8(err) => write!(f, "DmarcError while decoding UTF-8: {}", err),
+            DmarcError::Gzip(err) => write!(f, "DmarcError while working with GZIP file: {}", err),
+            DmarcError::Zip(err) => write!(f, "DmarcError while working with ZIP file: {}", err),
+            DmarcError::ZipRead(err) => write!(f, "DmarcError while reading from ZIP file: {}", err),
+            DmarcError::Parsing(err) => write!(f, "DmarcError while parsing: {}", err),
         }
     }
 }
@@ -339,8 +339,8 @@ impl DMARCReader {
             return self.parse_report(&xml).map(|res| Some(res));
         } else {
             debug!("no attachment found");
+            return Ok(None);
         }
-        return Ok(None);
     }
 
     fn parse_report(&self, xml: &str) -> Result<DMARCReport, DmarcError> {
