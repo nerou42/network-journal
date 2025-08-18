@@ -53,7 +53,7 @@ flowchart LR
 - [x] [Deprecations](https://wicg.github.io/deprecation-reporting/) (in a context of websites)
 - [x] [Network Error Logging](https://www.w3.org/TR/network-error-logging/) ([MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Network_Error_Logging))
 - [x] [SMTP TLS Reports](https://www.rfc-editor.org/rfc/rfc8460)
-- [x] [DMARC reports](https://www.rfc-editor.org/rfc/rfc7489.html)
+- [x] [DMARC aggregate reports](https://www.rfc-editor.org/rfc/rfc7489.html)
 - [x] [Permissions Policy](https://w3c.github.io/webappsec-permissions-policy/)
 - [x] [Integrity Policy](https://w3c.github.io/webappsec-subresource-integrity/)
 - [x] [Intervention Reports](https://wicg.github.io/intervention-reporting/)

@@ -16,7 +16,7 @@ clap = { version = "4.5.41", features = ["cargo", "derive"] }
 confy = { version = "1.0.0", features = ["yaml_conf"], default-features = false }
 flate2 = "1.1.2"
 futures-util = "0.3.31"
-imap = "2.4.1"
+imap = "3.0.0-alpha"
 itertools = "0.14.0"
 log = "0.4.27"
 mail-parser = "0.11.0"

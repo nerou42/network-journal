@@ -16,13 +16,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::{fmt::Display, io::{Cursor, Read}, net::TcpStream, str::{from_utf8, Utf8Error}};
+use std::{fmt::Display, io::{Cursor, Read}, str::{from_utf8, Utf8Error}};
 
 use flate2::read::GzDecoder;
-use imap::Session;
+use imap::{ImapConnection, Session};
 use log::{debug, trace};
 use mail_parser::{Message, MessageParser, MimeHeaders};
-use native_tls::TlsStream;
 use quick_xml::DeError;
 use serde::{Deserialize, Serialize};
 use zip::{result::ZipError, ZipArchive};
@@ -248,17 +247,13 @@ impl Display for DmarcError {
 }
 
 pub struct IMAPClient {
-    session: Session<TlsStream<TcpStream>>
+    session: Session<Box<dyn ImapConnection>>
 }
 
 impl IMAPClient {
 
     pub fn connect(host: &str, port: u16, username: &str, password: &str) -> Result<Self, imap::Error> {
-        let tls = native_tls::TlsConnector::builder().build().unwrap();
-
-        // we pass in the domain twice to check that the server's TLS
-        // certificate is valid for the domain we're connecting to.
-        let client = imap::connect((host, port), host, &tls).unwrap();
+        let client = imap::ClientBuilder::new(host, port).connect()?;
 
         // the client we have here is unauthenticated.
         // to do anything useful with the e-mails, we need to log in
