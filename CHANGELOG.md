@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Update imap dependency to pre-release version since latest stable has outdated and vulnerable dependencies
 
+### Fixed
+
+- Some SMTP TLS Reports could not be parsed and the raw payload was not logged
+
 
 ## [0.5.0](https://github.com/nerou42/network-journal/compare/v0.4.0...v0.5.0) - 2025-08-16
 

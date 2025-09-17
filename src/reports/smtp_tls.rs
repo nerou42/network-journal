@@ -16,11 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{http::header, web::{Data, Json}, HttpRequest, HttpResponse, Responder};
+use actix_web::{http::header, web::{Data, Payload}, HttpRequest, HttpResponse, Responder};
 use log::error;
 use serde::{Deserialize, Serialize};
 
-use crate::{reports::{handle_report, ReportType}, WebState};
+use crate::{get_body_as_string, reports::{self, handle_report, ReportType}, WebState};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -100,7 +100,23 @@ impl SMTPTLSReport {
     }
 }
 
-pub async fn report_smtp_tls(state: Data<WebState>, req: HttpRequest, report: Json<SMTPTLSReport>) -> impl Responder {
+pub async fn report_smtp_tls(state: Data<WebState>, req: HttpRequest, body: Payload) -> impl Responder {
+    let report = match get_body_as_string(body).await {
+        Ok(str) => {
+            let report_parse_res = serde_json::from_str::<SMTPTLSReport>(&str);
+            match report_parse_res {
+                Ok(report) => report,
+                Err(err) => {
+                    error!("{} in {}", reports::Error::Parse(err), str);
+                    return HttpResponse::BadRequest();
+                }
+            }
+        },
+        Err(err) => {
+            error!("{}", err);
+            return HttpResponse::BadRequest();
+        }
+    };
     let res = handle_report(
         &ReportType::SMTPTLSRPT(&report), 
         req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap()),

@@ -55,7 +55,7 @@ async fn get_body_as_string(body: Payload) -> Result<String, String> {
                 Err(err) => Err(format!("failed to convert raw payload to string: {}", err))
             }
         },
-        Err(err) => Err(format!("failed to convert retrieve raw payload from payload: {}", err))
+        Err(err) => Err(format!("failed to retrieve raw payload from payload: {}", err))
     }
 }
 
