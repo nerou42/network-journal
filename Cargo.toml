@@ -12,6 +12,7 @@ edition = "2024"
 [dependencies]
 actix-cors = "0.7.1"
 actix-web = { version = "4", features = ["openssl"] }
+chrono = "0.4.41"
 clap = { version = "4.5.41", features = ["cargo", "derive"] }
 confy = { version = "1.0.0", features = ["yaml_conf"], default-features = false }
 flate2 = "1.1.2"

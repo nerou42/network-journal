@@ -38,6 +38,7 @@ pub mod nel;
 pub mod permissions;
 pub mod reporting_api;
 pub mod smtp_tls;
+pub mod tls_cert_validity;
 
 #[derive(Serialize, Debug)]
 #[serde(untagged)]

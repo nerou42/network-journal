@@ -28,7 +28,7 @@ use simple_logger::SimpleLogger;
 
 use crate::{
     config::NetworkJournalConfig, processing::filter::Filter, reports::{
-        csp::report_csp, dmarc::IMAPClient, handle_report, reporting_api::reporting_api, smtp_tls::report_smtp_tls, ReportType
+        csp::report_csp, dmarc::IMAPClient, handle_report, reporting_api::reporting_api, smtp_tls::report_smtp_tls, tls_cert_validity::gather_certificate_info, ReportType
     }
 };
 
@@ -69,6 +69,8 @@ async fn main() -> std::io::Result<()> {
         Ok(cfg) => cfg,
         Err(err) => panic!("config file could not be opened: {}", err)
     };
+
+    println!("{:?}", gather_certificate_info("nerou.pages.nerou.de", 443).map(|v| v.unwrap()));
 
     let filter = Filter::new(cfg.filter);
     let _imap_thread_handle = if cfg.imap.enable {
