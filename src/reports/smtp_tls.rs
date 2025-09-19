@@ -16,7 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{http::header, web::{Data, Payload}, HttpRequest, HttpResponse, Responder};
+use std::io::{self, Read};
+
+use actix_web::{http::header, web::{Data, Payload}, HttpMessage, HttpRequest, HttpResponse, Responder};
+use flate2::bufread::GzDecoder;
 use log::error;
 use serde::{Deserialize, Serialize};
 
@@ -100,26 +103,59 @@ impl SMTPTLSReport {
     }
 }
 
+fn decode_reader(bytes: Vec<u8>) -> io::Result<String> {
+    let mut gz = GzDecoder::new(&bytes[..]);
+    let mut s = String::new();
+    gz.read_to_string(&mut s)?;
+    Ok(s)
+}
+
 pub async fn report_smtp_tls(state: Data<WebState>, req: HttpRequest, body: Payload) -> impl Responder {
-    let report = match get_body_as_string(body).await {
-        Ok(str) => {
-            let report_parse_res = serde_json::from_str::<SMTPTLSReport>(&str);
-            match report_parse_res {
-                Ok(report) => report,
+    let ua = req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap());
+    let payload = match req.content_type() {
+        "application/tlsrpt+gzip" => {
+            match body.to_bytes().await {
+                Ok(bytes) => {
+                    match decode_reader(bytes.to_vec()) {
+                        Ok(payload) => payload,
+                        Err(err) => {
+                            error!("{}", err);
+                            return HttpResponse::BadRequest();
+                        }
+                    }
+                },
                 Err(err) => {
-                    error!("{} in {}", reports::Error::Parse(err), str);
+                    error!("{}", err);
                     return HttpResponse::BadRequest();
                 }
             }
         },
+        "application/tlsrpt+json" => {
+            match get_body_as_string(body).await {
+                Ok(payload) => payload,
+                Err(err) => {
+                    error!("{}", err);
+                    return HttpResponse::BadRequest();
+                }
+            }
+        },
+        ct => {
+            error!("unexpected content type: {} (UA: {})", ct, ua.unwrap_or("unknown"));
+            return HttpResponse::BadRequest();
+        }
+    };
+
+    let report_parse_res = serde_json::from_str::<SMTPTLSReport>(&payload);
+    let report = match report_parse_res {
+        Ok(report) => report,
         Err(err) => {
-            error!("{}", err);
+            error!("{} in {}", reports::Error::Parse(err), payload);
             return HttpResponse::BadRequest();
         }
     };
     let res = handle_report(
         &ReportType::SMTPTLSRPT(&report), 
-        req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap()),
+        ua,
         &state.filter
     );
     match res {
