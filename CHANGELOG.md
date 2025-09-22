@@ -13,7 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Some SMTP TLS Reports could not be parsed and the raw payload was not logged
+- Some SMTP TLS Reports could not be parsed:
+    - Content-Encoding/Content-Type mismatch: `Content-Encoding != 'gzip' && Content-type == 'application/tlsrpt+gzip'`
+    - Some report senders (e.g. Google) skip `failure_details` property if there are no failures
+- Log raw SMTP TLS Reports payload on parse error
 
 
 ## [0.5.0](https://github.com/nerou42/network-journal/compare/v0.4.0...v0.5.0) - 2025-08-16

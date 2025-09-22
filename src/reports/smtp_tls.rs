@@ -80,6 +80,7 @@ struct FailureDetails {
 struct PoliciesItem {
     policy: Policy,
     summary: Summary,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     failure_details: Vec<FailureDetails>
 }
 
@@ -284,6 +285,73 @@ mod tests {
                         failure_reason_code: Some("X509_V_ERR_PROXY_PATH_LENGTH_EXCEEDED".to_string())
                     }
                 ]
+            }]
+        })
+    }
+
+    #[test]
+    fn parse_google_report() {
+        // source: actual report that has been received
+        let json = r#"{
+            "organization-name": "Google Inc.",
+            "date-range": {
+                "start-datetime": "2025-09-21T00:00:00Z",
+                "end-datetime": "2025-09-21T23:59:59Z"
+            },
+            "contact-info": "smtp-tls-reporting@google.com",
+            "report-id": "2025-09-21T00:00:00Z_example.com",
+            "policies": [
+                {
+                    "policy": {
+                        "policy-type": "sts",
+                        "policy-string": [
+                            "version: STSv1",
+                            "mode: enforce",
+                            "mx: mail.example.com",
+                            "mx: mail2.example.com",
+                            "max_age: 86400"
+                        ],
+                        "policy-domain": "example.com",
+                        "mx-host": [
+                            "mail.example.com",
+                            "mail2.example.com"
+                        ]
+                    },
+                    "summary": {
+                        "total-successful-session-count": 2,
+                        "total-failure-session-count": 0
+                    }
+                }
+            ]
+        }"#;
+        let res = serde_json::from_str::<SMTPTLSReport>(json);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), SMTPTLSReport { 
+            organization_name: "Google Inc.".to_string(), 
+            date_range: DateRange { 
+                start_datetime: "2025-09-21T00:00:00Z".to_string(),
+                end_datetime: "2025-09-21T23:59:59Z".to_string()
+            }, 
+            contact_info: "smtp-tls-reporting@google.com".to_string(), 
+            report_id: "2025-09-21T00:00:00Z_example.com".to_string(), 
+            policies: vec![PoliciesItem { 
+                policy: Policy { 
+                    policy_type: PolicyType::STS, 
+                    policy_string: vec![
+                        "version: STSv1".to_string(),
+                        "mode: enforce".to_string(),
+                        "mx: mail.example.com".to_string(),
+                        "mx: mail2.example.com".to_string(),
+                        "max_age: 86400".to_string()
+                    ], 
+                    policy_domain: "example.com".to_string(), 
+                    mx_host: vec!["mail.example.com".to_string(), "mail2.example.com".to_string()]
+                }, 
+                summary: Summary { 
+                    total_successful_session_count: 2,
+                    total_failure_session_count: 0
+                },
+                failure_details: vec![]
             }]
         })
     }
