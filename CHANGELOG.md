@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased](https://github.com/nerou42/network-journal/compare/v0.5.0...HEAD)
 
+### Added
+
+- Configuration file reference
+
 ### Changed
 
 - Update imap dependency to pre-release version since latest stable has outdated and vulnerable dependencies
@@ -17,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Content-Encoding/Content-Type mismatch: `Content-Encoding != 'gzip' && Content-type == 'application/tlsrpt+gzip'`
     - Some report senders (e.g. Google) skip `failure_details` property if there are no failures
 - Log raw SMTP TLS Reports payload on parse error
+- Compatibility issues with RPM SPEC file
 
 
 ## [0.5.0](https://github.com/nerou42/network-journal/compare/v0.4.0...v0.5.0) - 2025-08-16

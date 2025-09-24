@@ -42,7 +42,7 @@ flowchart LR
     e23@{ animation: slow }
 ```
 
-## Current State
+## :white_check_mark: Current State
 
 ### Supported Reports
 
@@ -75,17 +75,46 @@ flowchart LR
 - [x] RPM package
 - [ ] DEB package
 
-## Install
+## :rocket: Install
 
-Run the executable once (with the `--config` parameter set to a path of your liking) to generate the default configuration file.
+### Installation methods
 
-**Note**: Some reporters require TLS to be enabled. If you are using some reverse proxy on the other hand, you do not need to enable TLS in this context but on your proxy.
+There are several installation methods available:
 
-## Configure your reports
+#### RPM Package (RHEL/CentOS/AlmaLinux/Rocky Linux)
+
+1. Download the latest RPM package from the [releases section on GitHub](https://github.com/nerou42/network-journal/releases/latest).
+  Currently, RPM packages are available for *el9* and *amd64 architecture* only. If you need a package for another version/arch, please file an issue.
+1. Install it using `sudo dnf install network-journal-*.el9.x86_64.rpm`
+1. Configure by editing `/etc/network-journal/network-journal.yml`
+1. Run `sudo systemctl enable --now network-journal` to start the server
+
+#### Precompiled Binary
+
+1. Download the latest binary from the [releases section on GitHub](https://github.com/nerou42/network-journal/releases/latest).
+  Currently, binaries are available for *Linux* and *amd64 architecture* only. If you need one for another OS/architecture, please file an issue.
+1. Move the binary to a path of your liking e.g. `mv network-journal-*-linux-x86_64 /usr/local/bin/network-journal`
+
+#### Build from Source
+
+1. Install the Rust toolchain: [Install Rust](https://www.rust-lang.org/tools/install)
+1. Clone the repository `git clone https://github.com/nerou42/network-journal.git && cd network-journal`
+1. Run `cargo build -r` (`cargo` is part of the Rust toolchain)
+1. Move the executable to a path of your liking e.g. `mv target/release/network-journal /usr/local/bin/`
+
+### Configuration ("Precompiled Binary" and "Build from Source" only)
+
+Run the executable once (with the `--config` parameter set to a path of your liking) to generate the default configuration file like so: `network-journal --config /etc/network-journal.yml`
+
+Edit the generated configuration file. See [network-journal.reference.yml](network-journal.reference.yml) file for documentation.
+
+:exclamation: **Note**: Some reporters require TLS to be enabled. If you are using some reverse proxy on the other hand, you do not need to enable TLS in this context but on your proxy.
+
+## :bar_chart: Configure your reports
 
 In the following, `network-journal.example.com` needs to be replaced with your network-journal domain while `example.com` needs to be replaced with your frontend or e-mail domain respectively.
 
-**Note**: All `Reporting-Endpoints` headers discussed below should be combined into one like so `Reporting-Endpoints: crash-reporting="...", "csp-endpoint="..."` or even `Reporting-Endpoints: default="https://network-journal.example.com/reporting-api"`. The same should be done for the `Report-To` header like so `Report-To: {"group": ...}, {"group": ...}`.
+:exclamation: **Note**: All `Reporting-Endpoints` headers discussed below should be combined into one like so `Reporting-Endpoints: crash-reporting="...", "csp-endpoint="..."` or even `Reporting-Endpoints: default="https://network-journal.example.com/reporting-api"`. The same should be done for the `Report-To` header like so `Report-To: {"group": ...}, {"group": ...}`.
 
 ### COEP
 
@@ -159,7 +188,7 @@ Add the following DNS entry for your domain:
 
 `_smtp._tls.example.com IN TXT "v=TLSRPTv1; rua=https://network-journal.example.com/tlsrpt"`
 
-## Log Format
+## :clipboard: Log Format
 
 The received reports are logged in the following format:
 
