@@ -113,37 +113,38 @@ fn decode_reader(bytes: Vec<u8>) -> io::Result<String> {
 
 pub async fn report_smtp_tls(state: Data<WebState>, req: HttpRequest, body: Payload) -> impl Responder {
     let ua = req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap());
-    let payload = match req.content_type() {
-        "application/tlsrpt+gzip" => {
-            match body.to_bytes().await {
-                Ok(bytes) => {
-                    match decode_reader(bytes.to_vec()) {
-                        Ok(payload) => payload,
-                        Err(err) => {
-                            error!("{}", err);
-                            return HttpResponse::BadRequest();
-                        }
+    let payload = if req.content_type() == "application/tlsrpt+gzip" && req.headers().get("content-encoding").is_none() {
+        match body.to_bytes().await {
+            Ok(bytes) => {
+                match decode_reader(bytes.to_vec()) {
+                    Ok(payload) => payload,
+                    Err(err) => {
+                        error!("{}", err);
+                        return HttpResponse::BadRequest();
                     }
-                },
-                Err(err) => {
-                    error!("{}", err);
-                    return HttpResponse::BadRequest();
                 }
+            },
+            Err(err) => {
+                error!("{}", err);
+                return HttpResponse::BadRequest();
             }
-        },
-        "application/tlsrpt+json" => {
-            match get_body_as_string(body).await {
-                Ok(payload) => payload,
-                Err(err) => {
-                    error!("{}", err);
-                    return HttpResponse::BadRequest();
-                }
-            }
-        },
-        ct => {
-            error!("unexpected content type: {} (UA: {})", ct, ua.unwrap_or("unknown"));
-            return HttpResponse::BadRequest();
         }
+    } else if req.content_type() == "application/tlsrpt+json" || req.content_type() == "application/tlsrpt+gzip" {
+        match get_body_as_string(body).await {
+            Ok(payload) => payload,
+            Err(err) => {
+                error!("{}", err);
+                return HttpResponse::BadRequest();
+            }
+        }
+    } else {
+        error!(
+            "unexpected content type/encoding: {}/{} (UA: {})",
+            req.content_type(),
+            req.headers().get("content-encoding").map_or("none", |ce| ce.to_str().unwrap_or("invalid")),
+            ua.unwrap_or("unknown")
+        );
+        return HttpResponse::BadRequest();
     };
 
     let report_parse_res = serde_json::from_str::<SMTPTLSReport>(&payload);
