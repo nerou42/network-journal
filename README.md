@@ -42,6 +42,10 @@ flowchart LR
     e23@{ animation: slow }
 ```
 
+The visualized log file could look like this (example visualized using Grafana):
+
+![examples/grafana-dashboard.png](examples/grafana-dashboard.png)
+
 ## :white_check_mark: Current State
 
 ### Supported Reports
