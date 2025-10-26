@@ -2,6 +2,7 @@
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nerou42/network-journal/ci.yml)
 ![GitHub Release](https://img.shields.io/github/v/release/nerou42/network-journal?display_name=tag&label=latest%20release&color=blue)
+[![Copr build status](https://copr.fedorainfracloud.org/coprs/cracksalad/network-journal/package/network-journal/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/cracksalad/network-journal/package/network-journal/)
 
 This project is about handling all the reports browsers (Content Security Policy, Network Error Logging etc.) and e-mail servers (DMARC, SMTP TLS etc.) can send nowadays.
 
@@ -76,7 +77,7 @@ The visualized log file could look like this (example visualized using Grafana):
 
 - [x] Build from source
 - [x] Provide [systemd service file](pkg/network-journal.service)
-- [x] RPM package
+- [x] RPM package and [repository](https://copr.fedorainfracloud.org/coprs/cracksalad/network-journal/)
 - [ ] DEB package
 
 ## :rocket: Install
@@ -85,10 +86,19 @@ The visualized log file could look like this (example visualized using Grafana):
 
 There are several installation methods available:
 
-#### RPM Package (RHEL/CentOS/AlmaLinux/Rocky Linux)
+#### RPM Package (RHEL/CentOS/AlmaLinux/Rocky Linux etc.)
+
+##### ...using COPR
+
+1. Enable COPR repository: `sudo dnf copr enable cracksalad/network-journal`
+1. Install by running `sudo dnf install network-journal`
+1. Configure by editing `/etc/network-journal/network-journal.yml`
+1. Run `sudo systemctl enable --now network-journal` to start the server
+
+##### ...using GitHub releases
 
 1. Download the latest RPM package from the [releases section on GitHub](https://github.com/nerou42/network-journal/releases/latest).
-  Currently, RPM packages are available for *el9* and *amd64 architecture* only. If you need a package for another version/arch, please file an issue.
+  Currently, RPM packages are available for *el9* and *x86_64 architecture* only. If you need a package for another version/arch, please file an issue.
 1. Install it using `sudo dnf install network-journal-*.el9.x86_64.rpm`
 1. Configure by editing `/etc/network-journal/network-journal.yml`
 1. Run `sudo systemctl enable --now network-journal` to start the server
@@ -96,7 +106,7 @@ There are several installation methods available:
 #### Precompiled Binary
 
 1. Download the latest binary from the [releases section on GitHub](https://github.com/nerou42/network-journal/releases/latest).
-  Currently, binaries are available for *Linux* and *amd64 architecture* only. If you need one for another OS/architecture, please file an issue.
+  Currently, binaries are available for *Linux* and *x86_64 architecture* only. If you need one for another OS/architecture, please file an issue.
 1. Move the binary to a path of your liking e.g. `mv network-journal-*-linux-x86_64 /usr/local/bin/network-journal`
 
 #### Build from Source
@@ -108,9 +118,8 @@ There are several installation methods available:
 
 ### Configuration ("Precompiled Binary" and "Build from Source" only)
 
-Run the executable once (with the `--config` parameter set to a path of your liking) to generate the default configuration file like so: `network-journal --config /etc/network-journal.yml`
-
-Edit the generated configuration file. See [network-journal.reference.yml](network-journal.reference.yml) file for documentation.
+Download the [reference configuration file](network-journal.reference.yml) and edit it to match your needs.
+Then start the server with the `--config` option set to the path to your configuration file: `network-journal --config /etc/network-journal.yml`
 
 :exclamation: **Note**: Some reporters require TLS to be enabled. If you are using some reverse proxy on the other hand, you do not need to enable TLS in this context but on your proxy.
 

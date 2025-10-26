@@ -2,7 +2,7 @@
 %global debug_package %{nil}
 
 Name:           network-journal
-Version:        0.5.1
+Version:        0.5.2
 Release:        1%{?dist}
 Summary:        Webserver and IMAP client to collect standardized browser and mailer reports
 
@@ -19,6 +19,7 @@ BuildRequires:  (cargo or /root/.cargo/bin/cargo)
 
 %description
 Collects CSP, NEL, DMARC, SMTP-TLS etc. reports via its own HTTP server and its IMAP client (DMARC only).
+All collected data is logged to a file that can be processed with, e.g. an ELK-stack or Grafana Loki to visualize it and issue alerts.
 
 
 %prep
