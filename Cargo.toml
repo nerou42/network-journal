@@ -13,7 +13,7 @@ edition = "2024"
 actix-cors = "0.7.1"
 actix-web = { version = "4", features = ["openssl"] }
 clap = { version = "4.5.41", features = ["cargo", "derive"] }
-confy = { version = "1.0.0", features = ["yaml_conf"], default-features = false }
+config = { version = "0.15.18", default-features = false, features = ["yaml"] }
 flate2 = "1.1.2"
 futures-util = "0.3.31"
 imap = "3.0.0-alpha"
@@ -28,4 +28,4 @@ serde_json = "1.0.141"
 simple_logger = "5.0.0"
 uaparser-rs = "0.1.0"
 url = "2.5.4"
-zip = "4.3.0"
+zip = "6.0.0"
