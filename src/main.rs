@@ -21,6 +21,7 @@ use std::{path::PathBuf, thread::{sleep, Builder}, time::Duration};
 use actix_cors::Cors;
 use actix_web::{dev::Service, guard::{self, Header}, http::header::{self, HeaderValue}, main, web::{resource, Data, Payload}, App, HttpServer};
 use clap::{crate_name, crate_version, Parser};
+use ::config::Config;
 use futures_util::future::FutureExt;
 use log::{debug, error, trace, warn};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
@@ -55,7 +56,20 @@ async fn get_body_as_string(body: Payload) -> Result<String, String> {
                 Err(err) => Err(format!("failed to convert raw payload to string: {}", err))
             }
         },
-        Err(err) => Err(format!("failed to convert retrieve raw payload from payload: {}", err))
+        Err(err) => Err(format!("failed to retrieve raw payload from payload: {}", err))
+    }
+}
+
+fn read_config(file: &str) -> NetworkJournalConfig {
+    let cfg = match Config::builder()
+        .add_source(::config::File::with_name(file))
+        .build() {
+        Ok(cfg) => cfg,
+        Err(err) => panic!("config file could not be opened: {}", err)
+    };
+    match cfg.try_deserialize::<NetworkJournalConfig>() {
+        Ok(cfg) => cfg,
+        Err(err) => panic!("config file could not be parsed: {}", err)
     }
 }
 
@@ -65,10 +79,12 @@ async fn main() -> std::io::Result<()> {
 
     let args = Args::parse();
 
-    let cfg = match confy::load_path::<NetworkJournalConfig>(args.config) {
+    let cfg = read_config(args.config.to_str().unwrap());
+
+    /*let cfg = match confy::load_path::<NetworkJournalConfig>(args.config) {
         Ok(cfg) => cfg,
         Err(err) => panic!("config file could not be opened: {}", err)
-    };
+    };*/
 
     let _tls_cert_check_thread_handle = if !cfg.certificate_check.domains.is_empty() {
         Some(Builder::new().name("tls_cert_check".to_string()).spawn(move || {

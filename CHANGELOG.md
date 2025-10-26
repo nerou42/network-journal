@@ -5,11 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/nerou42/network-journal/compare/v0.5.0...HEAD)
+## [Unreleased](https://github.com/nerou42/network-journal/compare/v0.5.1...HEAD)
+
+### Changed
+
+- Replace crate confy with config for better backwards compatibility when extending the config file
+
+
+## [0.5.1](https://github.com/nerou42/network-journal/compare/v0.5.0...v0.5.1) - 2025-09-24
+
+### Added
+
+- Configuration file reference
+- Grafana dashboard example
 
 ### Changed
 
 - Update imap dependency to pre-release version since latest stable has outdated and vulnerable dependencies
+
+### Fixed
+
+- Some SMTP TLS Reports could not be parsed:
+    - Content-Encoding/Content-Type mismatch: `Content-Encoding != 'gzip' && Content-type == 'application/tlsrpt+gzip'`
+    - Some report senders (e.g. Google) skip `failure_details` property if there are no failures
+- Log raw SMTP TLS Reports payload on parse error
+- Compatibility issues with RPM SPEC file
 
 
 ## [0.5.0](https://github.com/nerou42/network-journal/compare/v0.4.0...v0.5.0) - 2025-08-16

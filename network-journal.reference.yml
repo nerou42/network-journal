@@ -1,0 +1,21 @@
+# IP address and port to listen on (a webserver is started to receive reports)
+listen: 127.0.0.1
+port: 8080
+
+# TLS is required for most reports, but is sufficient to be enabled on some reverse proxy, if present
+tls:
+  enable: false
+  cert: null
+  key: null
+
+# IMAP is used to receive DMARC reports
+imap:
+  enable: false
+  host: 127.0.0.1
+  port: 993
+  username: ''
+  password: ''
+
+filter:
+  # domain names e.g. first.example.org to exclude third party domains (SPAM)
+  domain_whitelist: []

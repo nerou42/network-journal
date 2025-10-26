@@ -2,7 +2,7 @@
 %global debug_package %{nil}
 
 Name:           network-journal
-Version:        0.5.0
+Version:        0.5.1
 Release:        1%{?dist}
 Summary:        Webserver and IMAP client to collect standardized browser and mailer reports
 
@@ -45,11 +45,14 @@ cargo tree --workspace --offline --edges no-build,no-dev,no-proc-macro --no-dedu
 
 %install
 install -m 0755 -p -D target/release/%{name} %{buildroot}%{_bindir}/%{name}
-install -m 0644 -p -D pkg/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
-install -m 0644 -p -D pkg/%{name}.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/%{name}
-install -m 0644 -p -D regexes.yaml %{buildroot}%{_datadir}/%{name}/regexes.yaml
 mkdir -p %{buildroot}%{_sysconfdir}/%{name}
+install -m 0600 -p -D %{name}.reference.yml %{buildroot}%{_sysconfdir}/%{name}/%{name}.yml
+mkdir -p %{buildroot}%{_datadir}/%{name}
+install -m 0644 -p -D regexes.yaml %{buildroot}%{_datadir}/%{name}/regexes.yaml
+mkdir -p %{buildroot}%{_sysconfdir}/logrotate.d
+install -m 0644 -p -D pkg/%{name}.logrotate %{buildroot}%{_sysconfdir}/logrotate.d/%{name}
 mkdir -p %{buildroot}%{_localstatedir}/log/%{name}
+install -m 0644 -p -D pkg/%{name}.service %{buildroot}%{_unitdir}/%{name}.service
 
 
 %if %{with check}
@@ -63,15 +66,22 @@ cargo test -r
 %doc README.md CHANGELOG.md CONTRIBUTING.md examples/
 %attr(0755, root, root) %{_bindir}/%{name}
 %dir %attr(0755, root, root) %{_sysconfdir}/%{name}
-#%ghost %config(noreplace) %attr(0600, root, root) %{_sysconfdir}/%{name}/%{name}.yml
+%config(noreplace) %attr(0600, root, root) %{_sysconfdir}/%{name}/%{name}.yml
+%attr(0644, root, root) %{_datadir}/%{name}/regexes.yaml
 %attr(0644, root, root) %{_unitdir}/%{name}.service
 %dir %attr(0755, root, root) %{_localstatedir}/log/%{name}
-%ghost %attr(0700, root, root) %{_localstatedir}/log/%{name}/%{name}.log
+%ghost %attr(0644, root, root) %{_localstatedir}/log/%{name}/%{name}.log
 %attr(0644, root, root) %{_sysconfdir}/logrotate.d/%{name}
-%attr(0644, root, root) %{_datadir}/%{name}/regexes.yaml
 
 
 %changelog
+* Wed Sep 24 2025 nerou GmbH <info@nerou.de>
+- Add configuration reference file
+- Fix compatibility issues
+
+* Sat Aug 09 2025 nerou GmbH <info@nerou.de>
+- Add regexes.yaml for User-Agent derivation
+
 * Wed Aug 06 2025 nerou GmbH <info@nerou.de>
 - Add logrotate config
 

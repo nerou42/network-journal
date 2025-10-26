@@ -16,11 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{http::header, web::{Data, Json}, HttpRequest, HttpResponse, Responder};
+use std::io::{self, Read};
+
+use actix_web::{http::header, web::{Data, Payload}, HttpMessage, HttpRequest, HttpResponse, Responder};
+use flate2::bufread::GzDecoder;
 use log::error;
 use serde::{Deserialize, Serialize};
 
-use crate::{reports::{handle_report, ReportType}, WebState};
+use crate::{get_body_as_string, reports::{self, handle_report, ReportType}, WebState};
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "kebab-case")]
@@ -77,6 +80,7 @@ struct FailureDetails {
 struct PoliciesItem {
     policy: Policy,
     summary: Summary,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     failure_details: Vec<FailureDetails>
 }
 
@@ -100,10 +104,60 @@ impl SMTPTLSReport {
     }
 }
 
-pub async fn report_smtp_tls(state: Data<WebState>, req: HttpRequest, report: Json<SMTPTLSReport>) -> impl Responder {
+fn decode_reader(bytes: Vec<u8>) -> io::Result<String> {
+    let mut gz = GzDecoder::new(&bytes[..]);
+    let mut s = String::new();
+    gz.read_to_string(&mut s)?;
+    Ok(s)
+}
+
+pub async fn report_smtp_tls(state: Data<WebState>, req: HttpRequest, body: Payload) -> impl Responder {
+    let ua = req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap());
+    let payload = if req.content_type() == "application/tlsrpt+gzip" && req.headers().get("content-encoding").is_none() {
+        match body.to_bytes().await {
+            Ok(bytes) => {
+                match decode_reader(bytes.to_vec()) {
+                    Ok(payload) => payload,
+                    Err(err) => {
+                        error!("{}", err);
+                        return HttpResponse::BadRequest();
+                    }
+                }
+            },
+            Err(err) => {
+                error!("{}", err);
+                return HttpResponse::BadRequest();
+            }
+        }
+    } else if req.content_type() == "application/tlsrpt+json" || req.content_type() == "application/tlsrpt+gzip" {
+        match get_body_as_string(body).await {
+            Ok(payload) => payload,
+            Err(err) => {
+                error!("{}", err);
+                return HttpResponse::BadRequest();
+            }
+        }
+    } else {
+        error!(
+            "unexpected content type/encoding: {}/{} (UA: {})",
+            req.content_type(),
+            req.headers().get("content-encoding").map_or("none", |ce| ce.to_str().unwrap_or("invalid")),
+            ua.unwrap_or("unknown")
+        );
+        return HttpResponse::BadRequest();
+    };
+
+    let report_parse_res = serde_json::from_str::<SMTPTLSReport>(&payload);
+    let report = match report_parse_res {
+        Ok(report) => report,
+        Err(err) => {
+            error!("{} in {}", reports::Error::Parse(err), payload);
+            return HttpResponse::BadRequest();
+        }
+    };
     let res = handle_report(
         &ReportType::SMTPTLSRPT(&report), 
-        req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap()),
+        ua,
         Some(&state.filter)
     );
     match res {
@@ -232,6 +286,73 @@ mod tests {
                         failure_reason_code: Some("X509_V_ERR_PROXY_PATH_LENGTH_EXCEEDED".to_string())
                     }
                 ]
+            }]
+        })
+    }
+
+    #[test]
+    fn parse_google_report() {
+        // source: actual report that has been received
+        let json = r#"{
+            "organization-name": "Google Inc.",
+            "date-range": {
+                "start-datetime": "2025-09-21T00:00:00Z",
+                "end-datetime": "2025-09-21T23:59:59Z"
+            },
+            "contact-info": "smtp-tls-reporting@google.com",
+            "report-id": "2025-09-21T00:00:00Z_example.com",
+            "policies": [
+                {
+                    "policy": {
+                        "policy-type": "sts",
+                        "policy-string": [
+                            "version: STSv1",
+                            "mode: enforce",
+                            "mx: mail.example.com",
+                            "mx: mail2.example.com",
+                            "max_age: 86400"
+                        ],
+                        "policy-domain": "example.com",
+                        "mx-host": [
+                            "mail.example.com",
+                            "mail2.example.com"
+                        ]
+                    },
+                    "summary": {
+                        "total-successful-session-count": 2,
+                        "total-failure-session-count": 0
+                    }
+                }
+            ]
+        }"#;
+        let res = serde_json::from_str::<SMTPTLSReport>(json);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), SMTPTLSReport { 
+            organization_name: "Google Inc.".to_string(), 
+            date_range: DateRange { 
+                start_datetime: "2025-09-21T00:00:00Z".to_string(),
+                end_datetime: "2025-09-21T23:59:59Z".to_string()
+            }, 
+            contact_info: "smtp-tls-reporting@google.com".to_string(), 
+            report_id: "2025-09-21T00:00:00Z_example.com".to_string(), 
+            policies: vec![PoliciesItem { 
+                policy: Policy { 
+                    policy_type: PolicyType::STS, 
+                    policy_string: vec![
+                        "version: STSv1".to_string(),
+                        "mode: enforce".to_string(),
+                        "mx: mail.example.com".to_string(),
+                        "mx: mail2.example.com".to_string(),
+                        "max_age: 86400".to_string()
+                    ], 
+                    policy_domain: "example.com".to_string(), 
+                    mx_host: vec!["mail.example.com".to_string(), "mail2.example.com".to_string()]
+                }, 
+                summary: Summary { 
+                    total_successful_session_count: 2,
+                    total_failure_session_count: 0
+                },
+                failure_details: vec![]
             }]
         })
     }
