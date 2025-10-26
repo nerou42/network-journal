@@ -81,11 +81,6 @@ async fn main() -> std::io::Result<()> {
 
     let cfg = read_config(args.config.to_str().unwrap());
 
-    /*let cfg = match confy::load_path::<NetworkJournalConfig>(args.config) {
-        Ok(cfg) => cfg,
-        Err(err) => panic!("config file could not be opened: {}", err)
-    };*/
-
     let _tls_cert_check_thread_handle = if !cfg.certificate_check.domains.is_empty() {
         Some(Builder::new().name("tls_cert_check".to_string()).spawn(move || {
             trace!("TLS certificate check thread started");
