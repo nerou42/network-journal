@@ -15,12 +15,14 @@ flowchart LR
     mailserver("E-Mail server") e2@-- SMTP TLS reports --> webserver
     mailserver e3@-- DMARC reports --> mailbox("Mailbox")
     mailbox e4@--> imap
+    external_webserver("Webserver") e5@<-- active verification of TLS server certificate validity ---> http
     
     subgraph "network-journal"
         webserver("Webserver") e11@--> processing("Processing
         (filter, derive etc.)")
         imap("IMAP client") e12@--> processing
-        processing e13@--> logfile("Log file")
+        http("HTTP client") e13@--> processing
+        processing e14@--> logfile("Log file")
     end
     
     subgraph "ELK-stack/Grafana Loki/..."
@@ -34,9 +36,11 @@ flowchart LR
     e2@{ animation: slow }
     e3@{ animation: slow }
     e4@{ animation: slow }
+    e5@{ animation: slow }
     e11@{ animation: slow }
     e12@{ animation: slow }
     e13@{ animation: slow }
+    e14@{ animation: slow }
     e21@{ animation: slow }
     e22@{ animation: slow }
     e23@{ animation: slow }
@@ -61,6 +65,7 @@ The visualized log file could look like this (example visualized using Grafana):
 - [x] [Permissions Policy](https://w3c.github.io/webappsec-permissions-policy/)
 - [x] [Integrity Policy](https://w3c.github.io/webappsec-subresource-integrity/)
 - [x] [Intervention Reports](https://wicg.github.io/intervention-reporting/)
+- [x] TLS Server Certificate validity check (expiration and revokation)
 
 ### Supported Report Handling
 
@@ -191,6 +196,12 @@ Add the following HTTP headers to your HTTP responses:
 Add the following DNS entry for your domain:
 
 `_smtp._tls.example.com IN TXT "v=TLSRPTv1; rua=https://network-journal.example.com/tlsrpt"`
+
+### TLS Server Certificate validity check
+
+Since this is an active verification process, you just have to configure your domains (and ports) to check in the configuration file.
+
+:exclamation: **Note**: This check is not comparable to something like [SSL Labs > SSL Server Test](https://www.ssllabs.com/ssltest/) or [Test TLS](https://testtls.com/) at all! This check just looks at the `not_before` and `not_after` properties of the certificate as well as the included CRL distribution points and verifies, that the certificate is not revoked.
 
 ## :clipboard: Log Format
 

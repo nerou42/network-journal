@@ -19,3 +19,11 @@ imap:
 filter:
   # domain names e.g. first.example.org to exclude third party domains (SPAM)
   domain_whitelist: []
+
+# Check TLS server certificate validity in a regular interval (currently daily)
+certificate_check:
+  # domain names and port (if not default 443) e.g.
+  # domains:
+  # - domain: example.com
+  #   port: 443
+  domains: []

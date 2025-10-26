@@ -123,7 +123,8 @@ impl Default for CertificateChecksConfig {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CertificateCheckConfig {
-    pub host: String,
+    pub domain: String,
+    /// defaults to 443
     #[serde(default = "default_certificate_check_port")]
     pub port: u16
 }

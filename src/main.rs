@@ -23,13 +23,13 @@ use actix_web::{dev::Service, guard::{self, Header}, http::header::{self, Header
 use clap::{crate_name, crate_version, Parser};
 use ::config::Config;
 use futures_util::future::FutureExt;
-use log::{debug, error, trace, warn};
+use log::{error, trace, warn, LevelFilter};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use simple_logger::SimpleLogger;
 
 use crate::{
     config::NetworkJournalConfig, processing::filter::Filter, reports::{
-        csp::report_csp, dmarc::IMAPClient, handle_report, reporting_api::reporting_api, smtp_tls::report_smtp_tls, tls_cert_validity::CertificateInfo, ReportType
+        csp::report_csp, dmarc::IMAPClient, handle_report, reporting_api::reporting_api, smtp_tls::report_smtp_tls, tls_cert_validity::TLSCertificateValidityReport, ReportType
     }
 };
 
@@ -75,7 +75,11 @@ fn read_config(file: &str) -> NetworkJournalConfig {
 
 #[main]
 async fn main() -> std::io::Result<()> {
-    SimpleLogger::new().env().init().unwrap();
+    SimpleLogger::new()
+        .with_module_level("reqwest", LevelFilter::Info)
+        .with_module_level("hyper_util", LevelFilter::Info)
+        .with_module_level("mio::poll", LevelFilter::Info)
+        .env().init().unwrap();
 
     let args = Args::parse();
 
@@ -87,26 +91,20 @@ async fn main() -> std::io::Result<()> {
 
             loop {
                 for domain in &cfg.certificate_check.domains {
-                    let cert_res = CertificateInfo::gather(domain.host.as_str(), domain.port);
+                    let cert_res = TLSCertificateValidityReport::create(domain.domain.as_str(), domain.port);
                     match cert_res {
                         Ok(cert_opt) => {
                             match cert_opt {
-                                Some(cert) => {
-                                    //println!("{:?}", cert);
-
-                                    if cert.is_valid() {
-                                        debug!("certificate {} is valid for {} more days", cert.subject.common_name, cert.get_days_until_expiration());
-                                    } else {
-                                        if let Err(err) = handle_report(&ReportType::TLSCertificateValidity(&cert), None, None) {
-                                            error!("{}", err);
-                                        }
-                                        //info!("certificate {} is invalid for {} days already", cert.subject.common_name, cert.get_days_until_expiration());
+                                Some(rpt) => {
+                                    //println!("{:?}", rpt.certificate);
+                                    if let Err(err) = handle_report(&ReportType::TLSCertificateValidity(&rpt), None, None) {
+                                        error!("{}", err);
                                     }
                                 },
-                                None => warn!("no certiticate found for domain {}:{}", domain.host, domain.port)
+                                None => warn!("no certiticate found for domain {}:{}", domain.domain, domain.port)
                             };
                         },
-                        Err(err) => error!("failed to get certificate for domain {}:{}: {}", domain.host, domain.port, err)
+                        Err(err) => error!("failed to get certificate for domain {}:{}: {}", domain.domain, domain.port, err)
                     };
                 }
 

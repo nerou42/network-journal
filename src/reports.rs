@@ -23,7 +23,7 @@ use serde::Serialize;
 
 use crate::{
     processing::{derivation::{analyze_url, analyze_user_agent, Client, Device, Url}, filter::Filter}, 
-    reports::{csp::CSPReport, dmarc::DMARCReport, smtp_tls::SMTPTLSReport, tls_cert_validity::CertificateInfo}
+    reports::{csp::CSPReport, dmarc::DMARCReport, smtp_tls::SMTPTLSReport, tls_cert_validity::TLSCertificateValidityReport}
 };
 
 pub mod coep;
@@ -47,7 +47,7 @@ pub enum ReportType<'a> {
     CSPLvl2(&'a CSPReport),
     SMTPTLSRPT(&'a SMTPTLSReport),
     DMARC(&'a DMARCReport),
-    TLSCertificateValidity(&'a CertificateInfo)
+    TLSCertificateValidity(&'a TLSCertificateValidityReport)
 }
 
 #[derive(Serialize, Default, Debug)]
@@ -145,7 +145,7 @@ pub fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: 
             rpt_type_str = "DMARC";
         },
         ReportType::TLSCertificateValidity(rpt) => {
-            decorated.derived.url.host = Some(rpt.subject.common_name.clone());
+            decorated.derived.url.host = Some(rpt.certificate.subject.common_name.clone());
             rpt_type_str = "TLS-Certificate-Validity";
         }
     }
