@@ -15,6 +15,7 @@ Source0:        https://github.com/nerou42/%{name}/archive/v%{version}/%{name}-%
 BuildArch:      x86_64
 BuildRequires:  systemd-rpm-macros
 BuildRequires:  gcc, openssl-devel
+BuildRequires:  (cargo or /root/.cargo/bin/cargo)
 
 
 %description

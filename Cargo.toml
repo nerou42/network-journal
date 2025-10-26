@@ -7,7 +7,7 @@ repository = "https://github.com/nerou42/network-journal"
 license = "GPL-3.0"
 keywords = ["report", "csp", "nel", "dmarc", "smtp-tls", "reporting-api"]
 categories = ["network-programming", "web-programming"]
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 actix-cors = "0.7.1"
