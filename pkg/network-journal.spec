@@ -9,12 +9,11 @@ Summary:        Webserver and IMAP client to collect standardized browser and ma
 License:        GPL-3.0-or-later
 URL:            https://github.com/nerou42/network-journal
 
-Source0:        https://github.com/nerou42/%{name}/archive/v%{version}/%{name}-%{version}.tar.gz
+Source0:        https://github.com/nerou42/%{name}/archive/%{name}-%{version}/%{name}-%{version}.tar.gz
 
 BuildArch:      x86_64
 BuildRequires:  systemd-rpm-macros
-BuildRequires:  gcc, openssl-devel
-BuildRequires:  (cargo or /root/.cargo/bin/cargo)
+BuildRequires:  gcc, openssl-devel, cargo
 
 
 %description
@@ -23,7 +22,7 @@ All collected data is logged to a file that can be processed with, e.g. an ELK-s
 
 
 %prep
-%setup
+%setup -n %{name}-%{name}-%{version}
 cargo fetch --locked -q
 
 
@@ -76,6 +75,10 @@ cargo test -r
 
 
 %changelog
+* Sun Oct 26 2025 nerou GmbH <info@nerou.de>
+- Add cargo as build dependency
+- Fix license notation's SPDX compatibility
+
 * Wed Sep 24 2025 nerou GmbH <info@nerou.de>
 - Add configuration reference file
 - Fix compatibility issues
