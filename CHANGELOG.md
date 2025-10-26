@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Replace crate confy with config for better backwards compatibility when extending the config file
 
+### Fixed
+
+- Minor issues with SPEC file and Fedora Packaging Guidelines
+- Build compatibility with distro's native Cargo (older version, thus Rust edition 2021 compatibility necessary)
+
 
 ## [0.5.1](https://github.com/nerou42/network-journal/compare/v0.5.0...v0.5.1) - 2025-09-24
 

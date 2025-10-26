@@ -16,6 +16,8 @@ clap = { version = "4.5.41", features = ["cargo", "derive"] }
 config = { version = "0.15.18", default-features = false, features = ["yaml"] }
 flate2 = "1.1.2"
 futures-util = "0.3.31"
+# hashify (dependency of mail-parser) v0.2.7+ uses Rust edition 2024 which is incompatible to latest Rust version in AlmaLinux 9 and 10
+hashify = ">=0.2.0, <0.2.7"
 imap = "3.0.0-alpha"
 itertools = "0.14.0"
 log = "0.4.27"

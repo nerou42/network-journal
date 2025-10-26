@@ -6,9 +6,8 @@ Version:        0.5.1
 Release:        1%{?dist}
 Summary:        Webserver and IMAP client to collect standardized browser and mailer reports
 
-License:        GPL-3.0
+License:        GPL-3.0-or-later
 URL:            https://github.com/nerou42/network-journal
-Packager:       nerou GmbH
 
 Source0:        https://github.com/nerou42/%{name}/archive/v%{version}/%{name}-%{version}.tar.gz
 
