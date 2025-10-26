@@ -104,7 +104,7 @@ pub async fn report_smtp_tls(state: Data<WebState>, req: HttpRequest, report: Js
     let res = handle_report(
         &ReportType::SMTPTLSRPT(&report), 
         req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap()),
-        &state.filter
+        Some(&state.filter)
     );
     match res {
         Ok(_) => HttpResponse::Ok(),

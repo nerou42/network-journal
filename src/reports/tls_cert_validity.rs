@@ -18,29 +18,85 @@
 
 use std::{fmt::Display, io, net::TcpStream};
 
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, FixedOffset, Utc};
 use openssl::{error::ErrorStack, nid::Nid, ssl::{self, HandshakeError, SslConnector, SslMethod}};
+use serde::{Serialize, Serializer};
 
-#[derive(Debug)]
+#[derive(Serialize, Debug)]
 pub struct CertificateIssuer {
-    common_name: String,
-    organization_name: String,
-    country_name: String
+    pub common_name: String,
+    pub organization_name: String,
+    pub country_name: String
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Debug)]
 pub struct CertificateSubject {
-    common_name: String,
+    pub common_name: String,
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Debug)]
 pub struct CertificateInfo {
-    serial_number: String,
-    issuer: CertificateIssuer,
-    subject: CertificateSubject,
-    subject_alt_names: Vec<String>,
-    not_before: DateTime<FixedOffset>,
-    not_after: DateTime<FixedOffset>
+    pub serial_number: String,
+    pub issuer: CertificateIssuer,
+    pub subject: CertificateSubject,
+    pub subject_alt_names: Vec<String>,
+    #[serde(serialize_with = "serialize_datetime")]
+    pub not_before: DateTime<FixedOffset>,
+    #[serde(serialize_with = "serialize_datetime")]
+    pub not_after: DateTime<FixedOffset>
+}
+
+pub fn serialize_datetime<S>(
+    date: &DateTime<FixedOffset>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let s = date.to_rfc3339();
+    serializer.serialize_str(&s)
+}
+
+impl CertificateInfo {
+
+    pub fn is_valid(&self) -> bool {
+        let now = Utc::now();
+        return self.not_before.le(&now) && self.not_after.ge(&now);
+    }
+
+    pub fn get_days_until_expiration(&self) -> i64 {
+        let now = Utc::now();
+        return (self.not_after.to_utc() - now).num_days();
+    }
+
+    pub fn gather(host: &str, port: u16) -> Result<Option<CertificateInfo>, Error> {
+        let connector = SslConnector::builder(SslMethod::tls())?.build();
+
+        let stream = TcpStream::connect(format!("{}:{}", host, port))?;
+        let mut stream = connector.connect(host, stream)?;
+
+        let mut res = None;
+        if let Some(cert) = stream.ssl().peer_certificate() {
+            println!("{:?}", cert);
+            res = Some(CertificateInfo {
+                serial_number: cert.serial_number().to_bn()?.to_hex_str()?.to_string(),
+                issuer: CertificateIssuer {
+                    common_name: cert.issuer_name().entries_by_nid(Nid::COMMONNAME).collect::<Vec<_>>()[0].data().as_utf8()?.to_string(),
+                    organization_name: cert.issuer_name().entries_by_nid(Nid::ORGANIZATIONNAME).collect::<Vec<_>>()[0].data().as_utf8()?.to_string(),
+                    country_name: cert.issuer_name().entries_by_nid(Nid::COUNTRYNAME).collect::<Vec<_>>()[0].data().as_utf8()?.to_string()
+                },
+                subject: CertificateSubject { 
+                    common_name: cert.subject_name().entries_by_nid(Nid::COMMONNAME).collect::<Vec<_>>()[0].data().as_utf8()?.to_string()
+                },
+                subject_alt_names: cert.subject_alt_names().unwrap().into_iter().map(|x| x.dnsname().unwrap().to_string()).collect(),
+                not_before: DateTime::parse_from_str(&cert.not_before().to_string().replace("GMT", "+00:00"), "%b %d %T %Y %:z")?,
+                not_after: DateTime::parse_from_str(&cert.not_after().to_string().replace("GMT", "+00:00"), "%b %d %T %Y %:z")?
+            });
+        }
+
+        stream.shutdown()?;
+        Ok(res)
+    }
 }
 
 #[derive(Debug)]
@@ -92,33 +148,4 @@ impl Display for Error {
             Self::ParseError(e) => write!(f, "{}", e)
         }
     }
-}
-
-pub fn gather_certificate_info(host: &str, port: u16) -> Result<Option<CertificateInfo>, Error> {
-    let connector = SslConnector::builder(SslMethod::tls())?.build();
-
-    let stream = TcpStream::connect(format!("{}:{}", host, port))?;
-    let mut stream = connector.connect(host, stream)?;
-
-    let mut res = None;
-    if let Some(cert) = stream.ssl().peer_certificate() {
-        println!("{:?}", cert);
-        res = Some(CertificateInfo {
-            serial_number: cert.serial_number().to_bn()?.to_hex_str()?.to_string(),
-            issuer: CertificateIssuer {
-                common_name: cert.issuer_name().entries_by_nid(Nid::COMMONNAME).collect::<Vec<_>>()[0].data().as_utf8()?.to_string(),
-                organization_name: cert.issuer_name().entries_by_nid(Nid::ORGANIZATIONNAME).collect::<Vec<_>>()[0].data().as_utf8()?.to_string(),
-                country_name: cert.issuer_name().entries_by_nid(Nid::COUNTRYNAME).collect::<Vec<_>>()[0].data().as_utf8()?.to_string()
-            },
-            subject: CertificateSubject { 
-                common_name: cert.subject_name().entries_by_nid(Nid::COMMONNAME).collect::<Vec<_>>()[0].data().as_utf8()?.to_string()
-            },
-            subject_alt_names: cert.subject_alt_names().unwrap().into_iter().map(|x| x.dnsname().unwrap().to_string()).collect(),
-            not_before: DateTime::parse_from_str(&cert.not_before().to_string().replace("GMT", "+00:00"), "%b %d %T %Y %:z")?,
-            not_after: DateTime::parse_from_str(&cert.not_after().to_string().replace("GMT", "+00:00"), "%b %d %T %Y %:z")?
-        });
-    }
-
-    stream.shutdown()?;
-    Ok(res)
 }

@@ -73,11 +73,11 @@ pub enum ReportingApiReport {
 
 pub async fn handle_reporting_api_report(reports: &ReportingApiReport, user_agent: Option<&str>, filter: &Filter) -> Result<(), reports::Error> {
     match reports {
-        ReportingApiReport::Single(report) => handle_report(&reports::ReportType::ReportingAPI(report), user_agent, filter),
+        ReportingApiReport::Single(report) => handle_report(&reports::ReportType::ReportingAPI(report), user_agent, Some(filter)),
         ReportingApiReport::Multi(reports) => {
             let mut res = Ok(());
             for report in reports {
-                let handle_res = handle_report(&reports::ReportType::ReportingAPI(report), user_agent, filter);
+                let handle_res = handle_report(&reports::ReportType::ReportingAPI(report), user_agent, Some(filter));
                 if handle_res.is_err() {
                     res = handle_res;
                     break;

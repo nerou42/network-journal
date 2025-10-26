@@ -120,7 +120,7 @@ pub async fn report_csp(state: Data<WebState>, req: HttpRequest, body: Payload) 
                     let parse_res = serde_json::from_str::<CSPReport>(&str);
                     match parse_res {
                         Ok(report) => {
-                            let res = handle_report(&ReportType::CSPLvl2(&report), ua, &state.filter);
+                            let res = handle_report(&ReportType::CSPLvl2(&report), ua, Some(&state.filter));
                             match res {
                                 Ok(_) => HttpResponse::Ok(),
                                 Err(err) => {

@@ -28,7 +28,9 @@ pub struct NetworkJournalConfig {
     pub port: u16,
     pub tls: TlsConfig,
     pub imap: ImapConfig,
-    pub filter: FilterConfig
+    pub filter: FilterConfig,
+    /// check TLS server certificates for validity
+    pub certificate_check: CertificateChecksConfig
 }
 
 impl Default for NetworkJournalConfig {
@@ -38,7 +40,8 @@ impl Default for NetworkJournalConfig {
             port: 8080,
             tls: TlsConfig::default(),
             imap: ImapConfig::default(),
-            filter: FilterConfig::default()
+            filter: FilterConfig::default(),
+            certificate_check: CertificateChecksConfig::default()
         }
     }
 }
@@ -102,4 +105,29 @@ impl Default for FilterConfig {
             domain_whitelist: vec![]
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CertificateChecksConfig {
+    #[serde(default)]
+    pub domains: Vec<CertificateCheckConfig>
+}
+
+impl Default for CertificateChecksConfig {
+    fn default() -> Self {
+        Self {
+            domains: vec![]
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct CertificateCheckConfig {
+    pub host: String,
+    #[serde(default = "default_certificate_check_port")]
+    pub port: u16
+}
+
+fn default_certificate_check_port() -> u16 {
+    443
 }

@@ -22,13 +22,13 @@ use actix_cors::Cors;
 use actix_web::{dev::Service, guard::{self, Header}, http::header::{self, HeaderValue}, main, web::{resource, Data, Payload}, App, HttpServer};
 use clap::{crate_name, crate_version, Parser};
 use futures_util::future::FutureExt;
-use log::{error, trace};
+use log::{debug, error, trace, warn};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use simple_logger::SimpleLogger;
 
 use crate::{
     config::NetworkJournalConfig, processing::filter::Filter, reports::{
-        csp::report_csp, dmarc::IMAPClient, handle_report, reporting_api::reporting_api, smtp_tls::report_smtp_tls, tls_cert_validity::gather_certificate_info, ReportType
+        csp::report_csp, dmarc::IMAPClient, handle_report, reporting_api::reporting_api, smtp_tls::report_smtp_tls, tls_cert_validity::CertificateInfo, ReportType
     }
 };
 
@@ -70,7 +70,41 @@ async fn main() -> std::io::Result<()> {
         Err(err) => panic!("config file could not be opened: {}", err)
     };
 
-    println!("{:?}", gather_certificate_info("nerou.pages.nerou.de", 443).map(|v| v.unwrap()));
+    let _tls_cert_check_thread_handle = if !cfg.certificate_check.domains.is_empty() {
+        Some(Builder::new().name("tls_cert_check".to_string()).spawn(move || {
+            trace!("TLS certificate check thread started");
+
+            loop {
+                for domain in &cfg.certificate_check.domains {
+                    let cert_res = CertificateInfo::gather(domain.host.as_str(), domain.port);
+                    match cert_res {
+                        Ok(cert_opt) => {
+                            match cert_opt {
+                                Some(cert) => {
+                                    //println!("{:?}", cert);
+
+                                    if cert.is_valid() {
+                                        debug!("certificate {} is valid for {} more days", cert.subject.common_name, cert.get_days_until_expiration());
+                                    } else {
+                                        if let Err(err) = handle_report(&ReportType::TLSCertificateValidity(&cert), None, None) {
+                                            error!("{}", err);
+                                        }
+                                        //info!("certificate {} is invalid for {} days already", cert.subject.common_name, cert.get_days_until_expiration());
+                                    }
+                                },
+                                None => warn!("no certiticate found for domain {}:{}", domain.host, domain.port)
+                            };
+                        },
+                        Err(err) => error!("failed to get certificate for domain {}:{}: {}", domain.host, domain.port, err)
+                    };
+                }
+
+                sleep(Duration::from_secs(86400));
+            }
+        }))
+    } else {
+        None
+    };
 
     let filter = Filter::new(cfg.filter);
     let _imap_thread_handle = if cfg.imap.enable {
@@ -92,7 +126,7 @@ async fn main() -> std::io::Result<()> {
                         match imap_client.read("UNANSWERED UNSEEN UNDELETED UNDRAFT SUBJECT \"Report Domain:\"") {
                             Ok(reports) => {
                                 for report in reports {
-                                    if let Err(err) = handle_report(&ReportType::DMARC(&report), None, &filter_imap) {
+                                    if let Err(err) = handle_report(&ReportType::DMARC(&report), None, Some(&filter_imap)) {
                                         error!("{}", err);
                                     }
                                 }
