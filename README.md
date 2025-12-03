@@ -1,6 +1,7 @@
 # network-journal
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nerou42/network-journal/ci.yml)
+[![Quality Gate Status](https://sonarqube.nerou.de/api/project_badges/measure?project=nerou42_network-journal_0e322183-768d-4074-ae7d-bcfecc3f30f8&metric=alert_status&token=sqb_f4a4ab185ad696491d9f4cb9f93ae987ec5a3c9c)](https://sonarqube.nerou.de/dashboard?id=nerou42_network-journal_0e322183-768d-4074-ae7d-bcfecc3f30f8)
 ![GitHub Release](https://img.shields.io/github/v/release/nerou42/network-journal?display_name=tag&label=latest%20release&color=blue)
 [![Copr build status](https://copr.fedorainfracloud.org/coprs/cracksalad/network-journal/package/network-journal/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/cracksalad/network-journal/package/network-journal/)
 
