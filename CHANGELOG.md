@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - TLS certificate validity (expiration, revokation) check
+- `include_subdomains` option to filter config
 
 
 ## [0.5.2](https://github.com/nerou42/network-journal/compare/v0.5.1...v0.5.2) - 2025-10-26

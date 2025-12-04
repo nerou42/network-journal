@@ -96,7 +96,26 @@ impl Default for ImapConfig {
 pub struct FilterConfig {
     /// empty list allows all domains
     #[serde(default)]
-    pub domain_whitelist: Vec<String>
+    pub domain_whitelist: Vec<DomainConfigType>
+}
+
+impl FilterConfig {
+    pub fn contains_domain(&self, domain: &str) -> bool {
+        for item in self.domain_whitelist.iter() {
+            let contained = match item {
+                DomainConfigType::Simple(d) => domain == d,
+                DomainConfigType::Complex(d) => {
+                    let mut subdomain_pattern = d.domain.clone();
+                    subdomain_pattern.insert_str(0, ".");
+                    d.domain == domain || (d.include_subdomains && domain.ends_with(&subdomain_pattern))
+                }
+            };
+            if contained {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 impl Default for FilterConfig {
@@ -105,6 +124,20 @@ impl Default for FilterConfig {
             domain_whitelist: vec![]
         }
     }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+#[serde(untagged)]
+pub enum DomainConfigType {
+    Simple(String),
+    Complex(DomainConfig)
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+pub struct DomainConfig {
+    pub domain: String,
+    #[serde(default)]
+    pub include_subdomains: bool
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -126,7 +159,10 @@ pub struct CertificateCheckConfig {
     pub domain: String,
     /// defaults to 443
     #[serde(default = "default_certificate_check_port")]
-    pub port: u16
+    pub port: u16,
+    /// defaults to false
+    #[serde(default)]
+    pub include_subdomains: bool
 }
 
 fn default_certificate_check_port() -> u16 {

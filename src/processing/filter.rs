@@ -46,7 +46,8 @@ impl Filter {
     }
 
     pub fn is_domain_allowed(&self, host: &str) -> bool {
-        if self.config.domain_whitelist.is_empty() || self.config.domain_whitelist.contains(&host.to_string()) {
+        // TODO handle include_subdomains
+        if self.config.domain_whitelist.is_empty() || self.config.contains_domain(host) {
             return true;
         } else {
             debug!("got report for domain \"{}\", which is not whitelisted -> drop", host);
