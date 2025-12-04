@@ -223,6 +223,7 @@ where `<report_type>` can be one of:
 - NEL
 - PermissionsPolicyViolation
 - SMTP-TLS-RPT
+- TLS-Certificate-Validity
 
 and where `<report-content-as-json>` looks like this (using a CSP level 3 report as an example here):
 
