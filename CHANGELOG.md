@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased](https://github.com/nerou42/network-journal/compare/v0.5.2...HEAD)
 
+### Added
+
+- TLS certificate validity (expiration, revokation) check
+
 
 ## [0.5.2](https://github.com/nerou42/network-journal/compare/v0.5.1...v0.5.2) - 2025-10-26
 
