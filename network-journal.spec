@@ -2,14 +2,14 @@
 %global debug_package %{nil}
 
 Name:           network-journal
-Version:        0.5.2
+Version:        0.5.3
 Release:        1%{?dist}
 Summary:        Webserver and IMAP client to collect standardized browser and mailer reports
 
 License:        GPL-3.0-or-later
 URL:            https://github.com/nerou42/network-journal
 
-Source0:        https://github.com/nerou42/%{name}/archive/refs/tags/v%{version}/%{name}-%{version}.tar.gz
+Source0:        {{{ git_dir_pack }}}
 
 ExclusiveArch:  x86_64
 BuildRequires:  systemd-rpm-macros
@@ -24,7 +24,7 @@ alerts.
 
 
 %prep
-%setup -n %{name}-%{version}
+{{{ git_dir_setup_macro }}}
 cargo fetch --locked -q
 
 
