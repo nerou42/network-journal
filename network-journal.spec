@@ -1,8 +1,6 @@
 %bcond_without check
 %global debug_package %{nil}
 
-#Name:           {{{ git_dir_name }}}
-#Version:        {{{ git_dir_version }}}
 Name:           network-journal
 Version:        0.5.3
 Release:        1%{?dist}
@@ -11,7 +9,6 @@ Summary:        Webserver and IMAP client to collect standardized browser and ma
 License:        GPL-3.0-or-later
 URL:            https://github.com/nerou42/network-journal
 
-#Source0:        https://github.com/nerou42/%{name}/archive/%{name}-%{version}/%{name}-%{version}.tar.gz
 Source0:        {{{ git_dir_pack }}}
 
 BuildArch:      x86_64
@@ -25,7 +22,6 @@ All collected data is logged to a file that can be processed with, e.g. an ELK-s
 
 
 %prep
-#%setup -n %{name}-%{name}-%{version}
 {{{ git_dir_setup_macro }}}
 cargo fetch --locked -q
 
