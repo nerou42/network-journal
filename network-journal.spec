@@ -11,14 +11,16 @@ URL:            https://github.com/nerou42/network-journal
 
 Source0:        {{{ git_dir_pack }}}
 
-BuildArch:      x86_64
+ExclusiveArch:  x86_64
 BuildRequires:  systemd-rpm-macros
 BuildRequires:  gcc, openssl-devel, cargo
 
 
 %description
-Collects CSP, NEL, DMARC, SMTP-TLS etc. reports via its own HTTP server and its IMAP client (DMARC only).
-All collected data is logged to a file that can be processed with, e.g. an ELK-stack or Grafana Loki to visualize it and issue alerts.
+Collects CSP, NEL, DMARC, SMTP-TLS etc. reports via its own HTTP server and
+its IMAP client (DMARC only). All collected data is logged to a file that can
+be processed with, e.g. an ELK-stack or Grafana Loki to visualize it and issue
+alerts.
 
 
 %prep
@@ -71,7 +73,7 @@ cargo test -r
 %attr(0644, root, root) %{_unitdir}/%{name}.service
 %dir %attr(0755, root, root) %{_localstatedir}/log/%{name}
 %ghost %attr(0644, root, root) %{_localstatedir}/log/%{name}/%{name}.log
-%attr(0644, root, root) %{_sysconfdir}/logrotate.d/%{name}
+%config %attr(0644, root, root) %{_sysconfdir}/logrotate.d/%{name}
 
 
 %changelog
