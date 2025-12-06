@@ -3,7 +3,7 @@
 listen: 127.0.0.1
 port: 8080
 
-# TLS is required for most reports, but is sufficient to be enabled on some 
+# TLS is required for most reports, but is sufficient to be enabled on some
 # reverse proxy, if present
 tls:
   enable: false
