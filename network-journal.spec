@@ -2,7 +2,7 @@
 %global debug_package %{nil}
 
 Name:           network-journal
-Version:        0.5.3
+Version:        0.6.0
 Release:        1%{?dist}
 Summary:        Webserver and IMAP client to collect standardized browser and mailer reports
 
@@ -11,7 +11,7 @@ URL:            https://github.com/nerou42/network-journal
 
 Source0:        {{{ git_dir_pack }}}
 
-ExclusiveArch:  x86_64
+ExclusiveArch:  x86_64 aarch64
 BuildRequires:  systemd-rpm-macros
 BuildRequires:  gcc, openssl-devel, cargo
 
