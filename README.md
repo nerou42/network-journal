@@ -88,7 +88,7 @@ The visualized log file could look like this (example visualized using Grafana):
 
 ## :rocket: Install
 
-### Installation methods
+### Installation Methods
 
 There are several installation methods available:
 
@@ -129,7 +129,7 @@ Then start the server with the `--config` option set to the path to your configu
 
 :exclamation: **Note**: Some reporters require TLS to be enabled. If you are using some reverse proxy on the other hand, you do not need to enable TLS in this context but on your proxy.
 
-## :bar_chart: Configure your reports
+## :bar_chart: Configure your Reports
 
 In the following, `network-journal.example.com` needs to be replaced with your network-journal domain while `example.com` needs to be replaced with your frontend or e-mail domain respectively.
 
@@ -209,9 +209,29 @@ Add the following DNS entry for your domain:
 
 ### TLS Server Certificate validity check
 
-Since this is an active verification process, you just have to configure your domains (and ports) to check in the configuration file.
+Since this is an active verification process, you just have to configure your domains (and ports) to check in the configuration file, like so:
+
+```yaml
+certificate_check:
+  domains:
+    - domain: example.com
+      port: 8443           # defaults to 443
+    - domain: example.org
+```
 
 :exclamation: **Note**: This check is not comparable to something like [SSL Labs > SSL Server Test](https://www.ssllabs.com/ssltest/) or [Test TLS](https://testtls.com/) at all! This check just looks at the `not_before` and `not_after` properties of the certificate as well as the included CRL distribution points and verifies, that the certificate is not revoked.
+
+## :mute: Configure Filters
+
+Foreign domains might unexpectedly send reports to you. To reduce spam, you can set a filter to whitelist your own domains, like so:
+
+```yaml
+filter:
+  domain_whitelist:
+    - example.com
+    - domain: example.org
+      include_subdomains: true    # defaults to false
+```
 
 ## :clipboard: Log Format
 

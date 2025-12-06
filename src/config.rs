@@ -136,6 +136,7 @@ pub enum DomainConfigType {
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct DomainConfig {
     pub domain: String,
+    /// defaults to false
     #[serde(default)]
     pub include_subdomains: bool
 }
@@ -159,10 +160,7 @@ pub struct CertificateCheckConfig {
     pub domain: String,
     /// defaults to 443
     #[serde(default = "default_certificate_check_port")]
-    pub port: u16,
-    /// defaults to false
-    #[serde(default)]
-    pub include_subdomains: bool
+    pub port: u16
 }
 
 fn default_certificate_check_port() -> u16 {
