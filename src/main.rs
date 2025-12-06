@@ -102,10 +102,10 @@ async fn main() -> std::io::Result<()> {
                                     }
                                 },
                                 None => warn!("no certiticate found for domain {}:{}", domain.domain, domain.port)
-                            };
+                            }
                         },
                         Err(err) => error!("failed to get certificate for domain {}:{}: {}", domain.domain, domain.port, err)
-                    };
+                    }
                 }
 
                 sleep(Duration::from_secs(86400));
@@ -141,7 +141,7 @@ async fn main() -> std::io::Result<()> {
                                 }
                             },
                             Err(err) => error!("unable to read message: {}", err)
-                        };
+                        }
                         if let Err(err) = imap_client.disconnect() {
                             error!("failed to disconnect from IMAP server: {}", err);
                         }

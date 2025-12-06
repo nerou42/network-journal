@@ -81,7 +81,7 @@ impl Display for Error {
 
 pub fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: Option<&Filter>) -> Result<(), Error> {
     let mut decorated = DecoratedReport {
-        report: report,
+        report,
         derived: Derived::default()
     };
     if let Some(ua) = user_agent {

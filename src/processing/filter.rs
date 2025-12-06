@@ -29,7 +29,7 @@ pub struct Filter {
 impl Filter {
     pub fn new<'a>(config: FilterConfig) -> Self {
         Self { 
-            config: config
+            config
         }
     }
 
