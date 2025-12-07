@@ -21,6 +21,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(default)]
 pub struct NetworkJournalConfig {
     /// listen address, defaults to 127.0.0.1
     pub listen: String,

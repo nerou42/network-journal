@@ -2,7 +2,7 @@
 %global debug_package %{nil}
 
 Name:           network-journal
-Version:        0.6.0
+Version:        0.6.1
 Release:        1%{?dist}
 Summary:        Webserver and IMAP client to collect standardized browser and mailer reports
 
