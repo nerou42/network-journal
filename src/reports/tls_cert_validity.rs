@@ -275,7 +275,7 @@ mod tests {
     #[test]
     fn check_expired() {
         let rpt_res = TLSCertificateValidityReport::create("expired.badssl.com", 443);
-        assert!(rpt_res.is_ok());
+        assert!(rpt_res.is_ok(), "{:?}", rpt_res.err());
 
         let rpt_opt = rpt_res.unwrap();
         assert!(rpt_opt.is_some());
@@ -289,7 +289,7 @@ mod tests {
     #[test]
     fn check_revoked() {
         let rpt_res = TLSCertificateValidityReport::create("revoked.badssl.com", 443);
-        assert!(rpt_res.is_ok());
+        assert!(rpt_res.is_ok(), "{:?}", rpt_res.err());
 
         let rpt_opt = rpt_res.unwrap();
         assert!(rpt_opt.is_some());
@@ -305,7 +305,7 @@ mod tests {
     #[test]
     fn check_self_signed() {
         let rpt_res = TLSCertificateValidityReport::create("self-signed.badssl.com", 443);
-        assert!(rpt_res.is_ok());
+        assert!(rpt_res.is_ok(), "{:?}", rpt_res.err());
 
         let rpt_opt = rpt_res.unwrap();
         assert!(rpt_opt.is_some());
