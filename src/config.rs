@@ -18,6 +18,7 @@
 
 use std::path::PathBuf;
 
+use config::Config;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -32,6 +33,21 @@ pub struct NetworkJournalConfig {
     pub filter: FilterConfig,
     /// check TLS server certificates for validity
     pub certificate_check: CertificateChecksConfig
+}
+
+impl NetworkJournalConfig {
+    pub fn read(file: &str) -> Self {
+        let cfg = match Config::builder()
+            .add_source(::config::File::with_name(file))
+            .build() {
+            Ok(cfg) => cfg,
+            Err(err) => panic!("config file could not be opened: {}", err)
+        };
+        match cfg.try_deserialize::<Self>() {
+            Ok(cfg) => cfg,
+            Err(err) => panic!("config file could not be parsed: {}", err)
+        }
+    }
 }
 
 impl Default for NetworkJournalConfig {

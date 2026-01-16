@@ -21,7 +21,6 @@ use std::{path::PathBuf, thread::{sleep, Builder}, time::Duration};
 use actix_cors::Cors;
 use actix_web::{dev::Service, guard::{self, Header}, http::header::{self, HeaderValue}, main, web::{resource, Data, Payload}, App, HttpServer};
 use clap::{crate_name, crate_version, Parser};
-use ::config::Config;
 use futures_util::future::FutureExt;
 use log::{error, trace, warn, LevelFilter};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
@@ -40,6 +39,7 @@ mod processing;
 #[derive(Parser, Debug)]
 #[command(version, author, about, long_about = "Copyright (C) 2025 nerou GmbH This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions.")]
 struct Args {
+    /// path to configuration file
     #[arg(short, long, value_name="FILE.yml", default_value = "network-journal.yml")]
     config: PathBuf
 }
@@ -60,19 +60,6 @@ async fn get_body_as_string(body: Payload) -> Result<String, String> {
     }
 }
 
-fn read_config(file: &str) -> NetworkJournalConfig {
-    let cfg = match Config::builder()
-        .add_source(::config::File::with_name(file))
-        .build() {
-        Ok(cfg) => cfg,
-        Err(err) => panic!("config file could not be opened: {}", err)
-    };
-    match cfg.try_deserialize::<NetworkJournalConfig>() {
-        Ok(cfg) => cfg,
-        Err(err) => panic!("config file could not be parsed: {}", err)
-    }
-}
-
 #[main]
 async fn main() -> std::io::Result<()> {
     SimpleLogger::new()
@@ -83,7 +70,7 @@ async fn main() -> std::io::Result<()> {
 
     let args = Args::parse();
 
-    let cfg = read_config(args.config.to_str().unwrap());
+    let cfg = NetworkJournalConfig::read(args.config.to_str().unwrap());
 
     let _tls_cert_check_thread_handle = if !cfg.certificate_check.domains.is_empty() {
         Some(Builder::new().name("tls_cert_check".to_string()).spawn(move || {
