@@ -1,6 +1,6 @@
 [package]
 name = "network-journal"
-version = "0.6.1"
+version = "0.6.2"
 authors = ["nerou GmbH"]
 description = "Collect network reports (like CSP, NEL, DMARC etc.) and print them to file"
 repository = "https://github.com/nerou42/network-journal"

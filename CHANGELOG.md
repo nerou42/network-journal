@@ -5,7 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased](https://github.com/nerou42/network-journal/compare/v0.6.1...HEAD)
+## [Unreleased](https://github.com/nerou42/network-journal/compare/v0.6.2...HEAD)
+
+## [0.6.2](https://github.com/nerou42/network-journal/compare/v0.6.1...v0.6.2) - 2026-02-11
+
+### Security
+
+- Update `time` to a patched version regarding CVE-2026-25727 (I did not find any usage of the vulnerable parts)
+
 
 ## [0.6.1](https://github.com/nerou42/network-journal/compare/v0.6.0...v0.6.1) - 2025-12-07
 
