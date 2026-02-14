@@ -1,19 +1,21 @@
-%bcond_without check
-%global debug_package %{nil}
+%bcond_without    check
+%global           debug_package %{nil}
 
-Name:           network-journal
-Version:        0.6.1
-Release:        1%{?dist}
-Summary:        Webserver and IMAP client to collect standardized browser and mailer reports
+Name:             network-journal
+Version:          0.6.2
+Release:          2%{?dist}
+Summary:          Webserver and IMAP client to collect standardized browser and mailer reports
 
-License:        GPL-3.0-or-later
-URL:            https://github.com/nerou42/network-journal
+License:          GPL-3.0-or-later
+URL:              https://github.com/nerou42/network-journal
 
-Source0:        https://github.com/nerou42/%{name}/archive/refs/tags/v%{version}/%{name}-%{version}.tar.gz
+Source0:          https://github.com/nerou42/%{name}/archive/refs/tags/v%{version}/%{name}-%{version}.tar.gz
 
-ExclusiveArch:  x86_64 aarch64
-BuildRequires:  systemd-rpm-macros
-BuildRequires:  gcc, openssl-devel, cargo
+ExclusiveArch:    x86_64 aarch64
+BuildRequires:    systemd-rpm-macros
+BuildRequires:    gcc, openssl-devel, cargo
+Requires(pre):    /usr/sbin/useradd
+Requires(postun): /usr/sbin/userdel
 
 
 %description
@@ -33,6 +35,13 @@ cargo build -rq
 cargo tree --workspace --offline --edges no-build,no-dev,no-proc-macro --no-dedupe --target all --prefix none --format "{l}: {p}" | sed -e "s: ($(pwd)[^)]*)::g" -e "s: / :/:g" -e "s:/: OR :g" | sort -u
 
 
+%pre
+if ! id "network-journal" >/dev/null 2>&1
+then
+    useradd -s /sbin/nologin -r -c "Network Journal Editor" network-journal
+fi
+
+
 %post
 %systemd_post %{name}.service
 
@@ -43,6 +52,10 @@ cargo tree --workspace --offline --edges no-build,no-dev,no-proc-macro --no-dedu
 
 %postun
 %systemd_postun_with_restart %{name}.service
+if [ $1 -eq 0 ]
+then
+    userdel network-journal
+fi
 
 
 %install
@@ -67,16 +80,19 @@ cargo test -r
 %license LICENSE.md
 %doc README.md CHANGELOG.md CONTRIBUTING.md examples/
 %attr(0755, root, root) %{_bindir}/%{name}
-%dir %attr(0755, root, root) %{_sysconfdir}/%{name}
-%config(noreplace) %attr(0600, root, root) %{_sysconfdir}/%{name}/%{name}.yml
+%dir %attr(0755, network-journal, network-journal) %{_sysconfdir}/%{name}
+%config(noreplace) %attr(0600, network-journal, network-journal) %{_sysconfdir}/%{name}/%{name}.yml
 %attr(0644, root, root) %{_datadir}/%{name}/regexes.yaml
 %attr(0644, root, root) %{_unitdir}/%{name}.service
-%dir %attr(0755, root, root) %{_localstatedir}/log/%{name}
-%ghost %attr(0644, root, root) %{_localstatedir}/log/%{name}/%{name}.log
+%dir %attr(0755, network-journal, network-journal) %{_localstatedir}/log/%{name}
+%ghost %attr(0644, network-journal, network-journal) %{_localstatedir}/log/%{name}/%{name}.log
 %config %attr(0644, root, root) %{_sysconfdir}/logrotate.d/%{name}
 
 
 %changelog
+* Sat Feb 14 2026 nerou GmbH <info@nerou.de>
+- Add system user to run network-journal
+
 * Sun Oct 26 2025 nerou GmbH <info@nerou.de>
 - Add cargo as build dependency
 - Fix license notation's SPDX compatibility

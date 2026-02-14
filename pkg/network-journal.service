@@ -1,11 +1,11 @@
 [Unit]
-Description=Webserver to receive network related reports
+Description=Webserver and IMAP client to collect standardized browser and mailer reports
 After=network.target
 
 [Service]
 Type=simple
-User=root
-Group=root
+User=network-journal
+Group=network-journal
 Environment="RUST_LOG=debug"
 ExecStart=/usr/bin/network-journal --config /etc/network-journal/network-journal.yml
 StandardOutput=append:/var/log/network-journal/network-journal.log
