@@ -2,3 +2,4 @@
 .github                             export-ignore
 .gitignore                          export-ignore
 pkg/rpmbuild.dockerfile             export-ignore
+sonar-project.properties            export-ignore

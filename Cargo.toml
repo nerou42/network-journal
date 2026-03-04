@@ -32,4 +32,5 @@ serde_json = "1.0.141"
 simple_logger = "5.0.0"
 uaparser-rs = "0.1.0"
 url = "2.5.4"
+# zip v8.0+ uses Rust edition 2024 which is incompatible to latest Rust version in AlmaLinux 9 and 10
 zip = "7.2"
