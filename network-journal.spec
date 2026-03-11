@@ -3,7 +3,7 @@
 
 Name:             network-journal
 Version:          0.6.2
-Release:          3%{?dist}
+Release:          4%{?dist}
 Summary:          Webserver and IMAP client to collect standardized browser and mailer reports
 
 License:          GPL-3.0-or-later
