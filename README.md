@@ -67,7 +67,7 @@ The visualized log file could look like this (example visualized using Grafana):
 - [x] [Permissions Policy](https://w3c.github.io/webappsec-permissions-policy/)
 - [x] [Integrity Policy](https://w3c.github.io/webappsec-subresource-integrity/)
 - [x] [Intervention Reports](https://wicg.github.io/intervention-reporting/)
-- [x] TLS Server Certificate validity check (expiration and revokation)
+- [x] TLS Server Certificate validity check (expiration and revocation)
 
 ### Supported Report Handling
 
@@ -83,8 +83,9 @@ The visualized log file could look like this (example visualized using Grafana):
 
 - [x] Build from source
 - [x] Provide [systemd service file](pkg/network-journal.service)
-- [x] RPM package and [repository](https://copr.fedorainfracloud.org/coprs/cracksalad/network-journal/)
-- [ ] DEB package
+- [x] RPM (RHEL, CentOS, Fedora, AlmaLinux, Rocky Linux) package and [repository](https://copr.fedorainfracloud.org/coprs/cracksalad/network-journal/)
+- [ ] DEB (Debian/Ubuntu) package
+- [ ] APK (Alpine) package ([open MR to include package in Alpine repositories](https://gitlab.alpinelinux.org/alpine/aports/-/merge_requests/96010))
 
 ## :rocket: Install
 
