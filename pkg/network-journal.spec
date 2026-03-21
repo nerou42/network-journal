@@ -72,7 +72,7 @@ install -m 0644 -p -D pkg/%{name}.service %{buildroot}%{_unitdir}/%{name}.servic
 
 %if %{with check}
 %check
-cargo test -r
+cargo test
 %endif
 
 

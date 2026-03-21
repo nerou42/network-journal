@@ -3,7 +3,7 @@
 
 Name:             network-journal
 Version:          0.6.2
-Release:          5%{?dist}
+Release:          6%{?dist}
 Summary:          Webserver and IMAP client to collect standardized browser and mailer reports
 
 License:          GPL-3.0-or-later
@@ -72,7 +72,8 @@ install -m 0644 -p -D pkg/%{name}.service %{buildroot}%{_unitdir}/%{name}.servic
 
 %if %{with check}
 %check
-cargo test -r
+# skipped tests use network connection and might fail due to DNS issues, timeouts, rate limits etc.
+cargo test -r -- --skip reports::tls_cert_validity::tests
 %endif
 
 
@@ -90,6 +91,9 @@ cargo test -r
 
 
 %changelog
+* Sat Mar 21 2026 nerou GmbH <info@nerou.de>
+- Skip online tests since they might fail due to rate limits etc.
+
 * Sat Feb 14 2026 nerou GmbH <info@nerou.de>
 - Add system user to run network-journal
 
