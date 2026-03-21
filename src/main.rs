@@ -37,7 +37,7 @@ mod reports;
 mod processing;
 
 #[derive(Parser, Debug)]
-#[command(version, author, about, long_about = "Copyright (C) 2025 nerou GmbH This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions.")]
+#[command(version, author, about, long_about = "Copyright (C) 2026 nerou GmbH This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions.")]
 struct Args {
     /// path to configuration file
     #[arg(short, long, value_name="FILE.yml", default_value = "network-journal.yml")]
