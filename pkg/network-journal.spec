@@ -3,7 +3,7 @@
 
 Name:             network-journal
 Version:          0.6.2
-Release:          5%{?dist}
+Release:          7%{?dist}
 Summary:          Webserver and IMAP client to collect standardized browser and mailer reports
 
 License:          GPL-3.0-or-later
@@ -72,7 +72,7 @@ install -m 0644 -p -D pkg/%{name}.service %{buildroot}%{_unitdir}/%{name}.servic
 
 %if %{with check}
 %check
-cargo test
+cargo test -r
 %endif
 
 
