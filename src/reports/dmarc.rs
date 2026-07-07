@@ -20,7 +20,7 @@ use std::{fmt::Display, io::{Cursor, Read}, str::{from_utf8, Utf8Error}};
 
 use flate2::read::GzDecoder;
 use imap::{ImapConnection, Session};
-use log::{debug, trace};
+use log::{debug, error, trace};
 use mail_parser::{Message, MessageParser, MimeHeaders};
 use quick_xml::DeError;
 use serde::{Deserialize, Serialize};
@@ -288,8 +288,10 @@ impl IMAPClient {
             if let Some(body) = message.body() {
                 trace!("found e-mail: {:?}", message.uid);
                 let message = MessageParser::default().parse(&body).unwrap();
-                if let Some(report) = reader.parse_message(&message)? {
-                    res.push(report);
+                match reader.parse_message(&message) {
+                    Ok(Some(report)) => res.push(report),
+                    Ok(None) => (),
+                    Err(err) => error!("parsing message failed: {:?}", err),
                 }
             }
         }
