@@ -17,6 +17,8 @@ imap:
   port: 993
   username: ''
   password: ''
+  # takes precedence when specified
+  #password_file: '/path/to/imap-password-file'
 
 filter:
   # domain names e.g. first.example.org to exclude third party domains (SPAM)

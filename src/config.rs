@@ -19,6 +19,7 @@
 use std::path::PathBuf;
 
 use config::Config;
+use log::error;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -94,7 +95,9 @@ pub struct ImapConfig {
     /// IMAP username
     pub username: String,
     /// IMAP password
-    pub password: String,
+    password: String,
+    /// IMAP password file, takes precedence when [`Some`]
+    password_file: Option<PathBuf>,
 }
 
 impl Default for ImapConfig {
@@ -104,8 +107,21 @@ impl Default for ImapConfig {
             host: "127.0.0.1".to_string(),
             port: 993,
             username: "".to_string(),
-            password: "".to_string()
+            password: "".to_string(),
+            password_file: None,
         }
+    }
+}
+
+impl ImapConfig {
+    pub fn password(&self) -> String {
+        self.password_file
+            .as_ref()
+            .map(std::fs::read_to_string)
+            .and_then(|res| res
+                .inspect_err(|err| error!("could not read IMAP password file: {err}"))
+                .ok())
+            .unwrap_or(self.password.clone())
     }
 }
 
