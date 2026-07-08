@@ -30,6 +30,7 @@ pub struct NetworkJournalConfig {
     /// defaults to 8080
     pub port: u16,
     pub tls: TlsConfig,
+    pub log: LogConfig,
     pub imap: ImapConfig,
     pub filter: FilterConfig,
     /// check TLS server certificates for validity
@@ -56,6 +57,7 @@ impl Default for NetworkJournalConfig {
         Self {
             listen: "127.0.0.1".to_string(),
             port: 8080,
+            log: LogConfig::default(),
             tls: TlsConfig::default(),
             imap: ImapConfig::default(),
             filter: FilterConfig::default(),
@@ -80,6 +82,20 @@ impl Default for TlsConfig {
             enable: false,
             cert: None,
             key: None
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct LogConfig {
+    /// pretty print the JSON data in log output, default true
+    pub pretty_print: bool,
+}
+
+impl Default for LogConfig {
+    fn default() -> Self {
+        Self {
+            pretty_print: true,
         }
     }
 }

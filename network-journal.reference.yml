@@ -10,6 +10,10 @@ tls:
   cert: null
   key: null
 
+log:
+  # pretty-print the JSON data in the output (makes it span multiple lines)
+  pretty_print: true
+
 # IMAP is used to receive DMARC reports
 imap:
   enable: false
