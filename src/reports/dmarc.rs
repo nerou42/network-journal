@@ -23,13 +23,31 @@ use imap::{ImapConnection, Session};
 use log::{debug, error, trace};
 use mail_parser::{Message, MessageParser, MimeHeaders};
 use quick_xml::DeError;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::{Deserializer, IntoDeserializer}};
 use zip::{result::ZipError, ZipArchive};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct DateRange {
     begin: u64,
     end: u64
+}
+
+/// Serialize nullable data that is nulled by not existing or being an empty string.
+///
+/// This is intended for supporting non-compliant report creators that include values with empty
+/// strings instead of omitting them entirely.
+///
+/// When applying this to a field, it disables the implicit `default` option,
+/// so that needs to be manually added.
+fn deserialize_option_lax<'de, D, T>(d: D) -> Result<Option<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    match <Option<String>>::deserialize(d)?.as_deref() {
+        None | Some("") => Ok(None),
+        Some(s) => T::deserialize(s.into_deserializer()).map(Some),
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -62,7 +80,7 @@ pub struct PolicyPublished {
     aspf: Option<Alignment>,
     p: Disposition,
     /// required in RFC 7489
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default, deserialize_with="deserialize_option_lax")]
     sp: Option<Disposition>,
     /// required in RFC 7489
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -398,7 +416,7 @@ mod tests {
             "#;
         let reader = DMARCReader::new();
         let res = reader.parse_report(xml);
-        assert!(res.is_ok());
+        assert!(res.is_ok(), "{:?}", res.unwrap_err());
         assert_eq!(res.unwrap(), DMARCReport {
             version: None,
             report_metadata: ReportMetadata { 
@@ -448,6 +466,115 @@ mod tests {
                     }]
                 }
             }]
+        })
+    }
+
+    #[test]
+    fn parse_non_compliant_report() {
+        let xml = r#"<?xml version="1.0" encoding="UTF-8" ?>
+<feedback>
+  <version>1.0</version>
+  <report_metadata>
+    <org_name>schufa.de</org_name>
+    <email>MAILER-DAEMON@schufa.de</email>
+    <extra_contact_info></extra_contact_info>
+    <report_id>1d8c6a$24abe54=796a084a2c7d4d19@schufa.de</report_id>
+    <date_range>
+      <begin>1780264801</begin>
+      <end>1780351202</end>
+    </date_range>
+  </report_metadata>
+  <policy_published>
+    <domain>sbruder.de</domain>
+    <adkim>r</adkim>
+    <aspf>r</aspf>
+    <p>reject</p>
+    <sp></sp>
+    <pct>100</pct>
+  </policy_published>
+  <record>
+    <row>
+      <source_ip>168.119.176.53</source_ip>
+      <count>1</count>
+      <policy_evaluated>
+        <disposition>none</disposition>
+        <dkim>pass</dkim>
+        <spf>pass</spf>
+      </policy_evaluated>
+    </row>
+    <identifiers>
+      <header_from>sbruder.de</header_from>
+      <envelope_from>sbruder.de</envelope_from>
+    </identifiers>
+    <auth_results>
+      <dkim>
+        <domain>sbruder.de</domain>
+        <selector>mail</selector>
+        <result>pass</result>
+      </dkim>
+      <spf>
+        <domain>sbruder.de</domain>
+        <scope>mfrom</scope>
+        <result>pass</result>
+      </spf>
+    </auth_results>
+  </record>
+</feedback>"#;
+        let reader = DMARCReader::new();
+        let res = reader.parse_report(xml);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), DMARCReport {
+            version: Some(1.0),
+            report_metadata: ReportMetadata {
+                org_name: "schufa.de".to_string(),
+                email: "MAILER-DAEMON@schufa.de".to_string(),
+                extra_contact_info: Some("".to_string()),
+                report_id: "1d8c6a$24abe54=796a084a2c7d4d19@schufa.de".to_string(),
+                date_range: DateRange {
+                    begin: 1780264801,
+                    end: 1780351202,
+                },
+                error: vec![],
+            },
+            policy_published: PolicyPublished {
+                domain: "sbruder.de".to_string(),
+                adkim: Some(Alignment::Relaxed),
+                aspf: Some(Alignment::Relaxed),
+                p: Disposition::Reject,
+                sp: None,
+                pct: Some(100),
+                fo: None,
+            },
+            record: vec![Record {
+                row: Row {
+                    source_ip: "168.119.176.53".to_string(),
+                    count: 1,
+                    policy_evaluated: vec![PolicyEvaluated {
+                        disposition: Disposition::None,
+                        dkim: DMARCResult::Pass,
+                        spf: DMARCResult::Pass,
+                        reason: vec![],
+                    }],
+                },
+                identifiers: Identifier {
+                    envelope_to: None,
+                    envelope_from: Some("sbruder.de".to_string()),
+                    header_from: "sbruder.de".to_string(),
+                },
+                auth_results: AuthResult {
+                    dkim: vec![DKIMAuthResult {
+                        domain: "sbruder.de".to_string(),
+                        selector: Some("mail".to_string()),
+                        result: DKIMResult::Pass,
+                        human_result: None,
+                    }],
+                    spf: vec![SPFAuthResult {
+                        domain: "sbruder.de".to_string(),
+                        scope: Some(SPFDomainScope::MailFrom),
+                        result: SPFResult::Pass,
+                    }],
+                },
+            }],
         })
     }
 }
