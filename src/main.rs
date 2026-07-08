@@ -113,7 +113,7 @@ async fn main() -> std::io::Result<()> {
                     &cfg.imap.host,
                     cfg.imap.port,
                     &cfg.imap.username,
-                    &cfg.imap.password
+                    &cfg.imap.password()
                 );
 
                 match imap_connect_res {
