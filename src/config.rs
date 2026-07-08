@@ -199,3 +199,16 @@ pub struct CertificateCheckConfig {
 fn default_certificate_check_port() -> u16 {
     443
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn check_config_parse() {
+        // read() would panic if it can not handle the file format, so we do not really need asserts to check if it succeeds
+        let config_res = NetworkJournalConfig::read("network-journal.reference.yml");
+        // ...instead, let's just check for secrets being present in the reference config unintendedly
+        assert!(config_res.imap.password == "".to_string(), "unexpected IMAP password '{}'", config_res.imap.password);
+    }
+}

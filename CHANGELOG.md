@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- TLS certificate validity (expiration, revokation) check
+- TLS certificate validity (expiration, revocation) check
 - `include_subdomains` option to filter config
 
 
