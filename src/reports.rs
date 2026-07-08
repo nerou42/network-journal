@@ -23,7 +23,8 @@ use serde::Serialize;
 
 use crate::{
     processing::{derivation::{analyze_url, analyze_user_agent, Client, Device, Url}, filter::Filter}, 
-    reports::{csp::CSPReport, dmarc::DMARCReport, smtp_tls::SMTPTLSReport, tls_cert_validity::TLSCertificateValidityReport}
+    reports::{csp::CSPReport, dmarc::DMARCReport, smtp_tls::SMTPTLSReport, tls_cert_validity::TLSCertificateValidityReport},
+    CONFIG,
 };
 
 pub mod coep;
