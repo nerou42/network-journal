@@ -20,14 +20,15 @@ use std::{fmt::Display, io, net::TcpStream};
 
 use chrono::{DateTime, FixedOffset, Utc};
 use log::error;
-use openssl::{asn1::Asn1TimeRef, error::ErrorStack, nid::Nid, ssl::{self, HandshakeError, SslConnector, SslMethod, SslVerifyMode}, x509::{CrlStatus, X509Crl, X509NameRef, X509}};
+use openssl::{asn1::Asn1TimeRef, error::ErrorStack, nid::Nid, ssl::{self, HandshakeError, SslConnector, SslMethod, SslVerifyMode}, x509::{CrlStatus, X509, X509Crl, X509NameRef}};
 use serde::{Serialize, Serializer};
 
 const CRL_MIME_TYPES: &[&'static str] = &["application/pkix-crl", "application/x-pkcs7-crl"];
 
 #[derive(Serialize, Debug)]
 pub struct CertificateIdentifier {
-    pub common_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub common_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub organization_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -59,7 +60,7 @@ impl From<&X509NameRef> for CertificateIdentifier {
     
     fn from(props: &X509NameRef) -> Self {
         Self {
-            common_name: Self::extract_single_entry(props, Nid::COMMONNAME).unwrap(),
+            common_name: Self::extract_single_entry(props, Nid::COMMONNAME),
             organization_name: Self::extract_single_entry(props, Nid::ORGANIZATIONNAME),
             organizational_unit_name: Self::extract_single_entry(props, Nid::ORGANIZATIONALUNITNAME),
             country_name: Self::extract_single_entry(props, Nid::COUNTRYNAME),
@@ -96,6 +97,10 @@ where
 
 impl CertificateInfo {
 
+    pub fn display_name(&self) -> Option<&String> {
+        self.subject.common_name.as_ref().or(self.subject_alt_names.get(0))
+    }
+
     pub fn is_expired(&self) -> bool {
         let now = Utc::now();
         return self.not_before.gt(&now) || self.not_after.lt(&now);
@@ -115,7 +120,7 @@ impl CertificateInfo {
             serial_number: cert.serial_number().to_bn()?.to_hex_str()?.to_string(),
             issuer: cert.issuer_name().into(),
             subject: cert.subject_name().into(),
-            subject_alt_names: cert.subject_alt_names().unwrap().into_iter().map(|x| x.dnsname().unwrap().to_string()).collect(),
+            subject_alt_names: cert.subject_alt_names().map_or(vec![], |stack| stack.into_iter().filter_map(|gn| gn.dnsname().or(gn.email()).map(|n| n.to_string())).collect()),
             not_before: Self::asn1_date_to_chrono(&cert.not_before())?,
             not_after: Self::asn1_date_to_chrono(&cert.not_after())?,
             crl_distribution_urls: vec![]
