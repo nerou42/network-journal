@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Handling of IMAP connection issues being retried immediately instead of after some backoff
+- Handling of TLS cert checks for certificates having no common name, no subject alternative names (SANs) or no SANs being a DNS name
 
 ### Security
 

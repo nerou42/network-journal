@@ -146,7 +146,7 @@ pub fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: 
             rpt_type_str = "DMARC";
         },
         ReportType::TLSCertificateValidity(rpt) => {
-            decorated.derived.url.host = Some(rpt.certificate.subject.common_name.clone());
+            decorated.derived.url.host = rpt.certificate.display_name().cloned();
             rpt_type_str = "TLS-Certificate-Validity";
         }
     }
