@@ -83,7 +83,7 @@ The visualized log file could look like this (example visualized using Grafana):
 
 - [x] Build from source
 - [x] Provide [systemd service file](pkg/network-journal.service)
-- [x] RPM (RHEL, CentOS, Fedora, AlmaLinux, Rocky Linux) package and [repository](https://copr.fedorainfracloud.org/coprs/cracksalad/network-journal/)
+- [x] RPM (RHEL, CentOS, Fedora, AlmaLinux, Rocky Linux) package in [this repository](https://copr.fedorainfracloud.org/coprs/cracksalad/network-journal/)
 - [ ] DEB (Debian/Ubuntu) package
 - [ ] APK (Alpine) package ([open MR to include package in Alpine repositories](https://gitlab.alpinelinux.org/alpine/aports/-/merge_requests/96010))
 
@@ -95,18 +95,8 @@ There are several installation methods available:
 
 #### RPM Package (RHEL/CentOS/AlmaLinux/Rocky Linux etc.)
 
-##### ...using COPR
-
 1. Enable COPR repository: `sudo dnf copr enable cracksalad/network-journal`
 1. Install by running `sudo dnf install network-journal`
-1. Configure by editing `/etc/network-journal/network-journal.yml`
-1. Run `sudo systemctl enable --now network-journal` to start the server
-
-##### ...using GitHub releases
-
-1. Download the latest RPM package from the [releases section on GitHub](https://github.com/nerou42/network-journal/releases/latest).
-  Currently, RPM packages are available for *el9* and *x86_64 architecture* only. If you need a package for another version/arch, please file an issue.
-1. Install it using `sudo dnf install network-journal-*.el9.x86_64.rpm`
 1. Configure by editing `/etc/network-journal/network-journal.yml`
 1. Run `sudo systemctl enable --now network-journal` to start the server
 
