@@ -29,6 +29,8 @@ pub struct NetworkJournalConfig {
     pub listen: String,
     /// defaults to 8080
     pub port: u16,
+    /// HTTP payload size limit in MiB, defaults to 4
+    pub max_payload_size: u16,
     pub tls: TlsConfig,
     pub log: LogConfig,
     pub imap: ImapConfig,
@@ -57,6 +59,7 @@ impl Default for NetworkJournalConfig {
         Self {
             listen: "127.0.0.1".to_string(),
             port: 8080,
+            max_payload_size: 4,
             log: LogConfig::default(),
             tls: TlsConfig::default(),
             imap: ImapConfig::default(),
@@ -114,6 +117,8 @@ pub struct ImapConfig {
     password: String,
     /// IMAP password file, takes precedence when [`Some`]
     password_file: Option<PathBuf>,
+    /// mailbox polling interval in seconds, defaults to 300 (5 minutes)
+    pub polling_interval: u32,
 }
 
 impl Default for ImapConfig {
@@ -125,6 +130,7 @@ impl Default for ImapConfig {
             username: "".to_string(),
             password: "".to_string(),
             password_file: None,
+            polling_interval: 300
         }
     }
 }
@@ -193,13 +199,16 @@ pub struct DomainConfig {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CertificateChecksConfig {
     #[serde(default)]
-    pub domains: Vec<CertificateCheckConfig>
+    pub domains: Vec<CertificateCheckConfig>,
+    /// check interval in seconds, defaults to 86400
+    pub interval: u32,
 }
 
 impl Default for CertificateChecksConfig {
     fn default() -> Self {
         Self {
-            domains: vec![]
+            domains: vec![],
+            interval: 86400
         }
     }
 }

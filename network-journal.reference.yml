@@ -2,6 +2,8 @@
 # IP address and port to listen on (a webserver is started to receive reports)
 listen: 127.0.0.1
 port: 8080
+# limit the incoming HTTP payload size in MiB
+max_payload_size: 4
 
 # TLS is required for most reports, but is sufficient to be enabled on some
 # reverse proxy, if present
@@ -23,6 +25,8 @@ imap:
   password: ''
   # takes precedence when specified
   #password_file: '/path/to/imap-password-file'
+  # mailbox polling interval in seconds
+  polling_interval: 300
 
 filter:
   # domain names e.g. first.example.org to exclude third party domains (SPAM)
@@ -35,3 +39,5 @@ certificate_check:
   # - domain: example.com
   #   port: 443
   domains: []
+  # certificate check interval in seconds
+  interval: 86400
