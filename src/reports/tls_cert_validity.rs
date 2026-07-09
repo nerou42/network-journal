@@ -1,6 +1,6 @@
 /**
  * network-journal - collect network reports and print them to file
- * Copyright (C) 2025 nerou GmbH
+ * Copyright (C) 2026 nerou GmbH
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ impl CertificateIdentifier {
         if items.is_empty() {
             None
         } else {
-            match items[0].data().as_utf8() {
+            match items[0].data().to_string() {
                 Ok(utf8) => Some(utf8.to_string()),
                 Err(_) => None
             }
