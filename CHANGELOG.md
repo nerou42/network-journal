@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased](https://github.com/nerou42/network-journal/compare/v0.7.0...HEAD)
 
+### Added
+
+- Config parameter to set the IMAP polling interval
+- Config parameter to set the TLS certificate check interval
+
+### Fixed
+
+- Handling of IMAP connection issues being retried immediately instead of after some backoff
+
 ### Security
 
 - Put incoming HTTP payload size limits into place to prevent (D)DoS attacks

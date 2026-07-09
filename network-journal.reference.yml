@@ -25,6 +25,8 @@ imap:
   password: ''
   # takes precedence when specified
   #password_file: '/path/to/imap-password-file'
+  # mailbox polling interval in seconds
+  polling_interval: 300
 
 filter:
   # domain names e.g. first.example.org to exclude third party domains (SPAM)
@@ -37,3 +39,5 @@ certificate_check:
   # - domain: example.com
   #   port: 443
   domains: []
+  # certificate check interval in seconds
+  interval: 86400
