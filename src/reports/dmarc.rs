@@ -242,7 +242,7 @@ impl DMARCReport {
 
 #[allow(dead_code)]
 #[derive(Debug)]
-pub enum DmarcError {
+pub enum DMARCError {
     IMAP(imap::Error),
     Utf8(Utf8Error),
     Gzip(std::io::Error),
@@ -251,15 +251,15 @@ pub enum DmarcError {
     Parsing(DeError)
 }
 
-impl Display for DmarcError {
+impl Display for DMARCError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
-            DmarcError::IMAP(err) => write!(f, "DmarcError while working with IMAP: {}", err),
-            DmarcError::Utf8(err) => write!(f, "DmarcError while decoding UTF-8: {}", err),
-            DmarcError::Gzip(err) => write!(f, "DmarcError while working with GZIP file: {}", err),
-            DmarcError::Zip(err) => write!(f, "DmarcError while working with ZIP file: {}", err),
-            DmarcError::ZipRead(err) => write!(f, "DmarcError while reading from ZIP file: {}", err),
-            DmarcError::Parsing(err) => write!(f, "DmarcError while parsing: {}", err),
+            DMARCError::IMAP(err) => write!(f, "DMARCError while working with IMAP: {}", err),
+            DMARCError::Utf8(err) => write!(f, "DMARCError while decoding UTF-8: {}", err),
+            DMARCError::Gzip(err) => write!(f, "DMARCError while working with GZIP file: {}", err),
+            DMARCError::Zip(err) => write!(f, "DMARCError while working with ZIP file: {}", err),
+            DMARCError::ZipRead(err) => write!(f, "DMARCError while reading from ZIP file: {}", err),
+            DMARCError::Parsing(err) => write!(f, "DMARCError while parsing: {}", err),
         }
     }
 }
@@ -287,10 +287,10 @@ impl IMAPClient {
         })
     }
 
-    pub fn read(&mut self, query: &str) -> Result<Vec<DMARCReport>, DmarcError> {
+    pub fn read(&mut self, query: &str) -> Result<Vec<DMARCReport>, DMARCError> {
         // fetch message number 1 in this mailbox, along with its RFC822 field.
         // RFC 822 dictates the format of the body of e-mails
-        let search_results = self.session.uid_search(query).map_err(|err| DmarcError::IMAP(err))?;
+        let search_results = self.session.uid_search(query).map_err(|err| DMARCError::IMAP(err))?;
         if search_results.is_empty() {
             return Ok(vec![]);
         }
@@ -298,7 +298,7 @@ impl IMAPClient {
         let messages = self.session.uid_fetch(
             uid_set, 
             "RFC822"
-        ).map_err(|err| DmarcError::IMAP(err))?;
+        ).map_err(|err| DMARCError::IMAP(err))?;
         trace!("got {} e-mail(s)", messages.len());
         let mut res = vec![];
         let reader = DMARCReader::new();
@@ -335,18 +335,16 @@ impl DMARCReader {
         DMARCReader {}
     }
 
-    fn parse_message(&self, msg: &Message) -> Result<Option<DMARCReport>, DmarcError> {
+    fn parse_message(&self, msg: &Message) -> Result<Option<DMARCReport>, DMARCError> {
         if let Some(attachment) = msg.attachment(0) {
             let mut xml: String = String::new();
             if attachment.is_content_type("text", "xml") {
-                xml = from_utf8(attachment.contents()).map_err(|err| DmarcError::Utf8(err))?.to_string();
+                xml = from_utf8(attachment.contents()).map_err(|err| DMARCError::Utf8(err))?.to_string();
             } else if attachment.is_content_type("application", "gzip") {
                 let mut decoder = GzDecoder::new(attachment.contents());
-                decoder.read_to_string(&mut xml).map_err(|err| DmarcError::Gzip(err))?;
+                decoder.read_to_string(&mut xml).map_err(|err| DMARCError::Gzip(err))?;
             } else if attachment.is_content_type("application", "zip") {
-                let reader = Cursor::new(attachment.contents());
-                let mut archive = ZipArchive::new(reader).map_err(|err| DmarcError::Zip(err))?;
-                archive.by_index(0).unwrap().read_to_string(&mut xml).map_err(|err| DmarcError::ZipRead(err))?;
+                xml = self.parse_zip(attachment.contents())?;
             } else {
                 debug!("unexpected content type: {:?}", attachment.content_type());
                 return Ok(None);
@@ -358,8 +356,16 @@ impl DMARCReader {
         }
     }
 
-    fn parse_report(&self, xml: &str) -> Result<DMARCReport, DmarcError> {
-        quick_xml::de::from_str(xml).map_err(|err| DmarcError::Parsing(err))
+    fn parse_zip(&self, bytes: &[u8]) -> Result<String, DMARCError> {
+        let reader = Cursor::new(bytes);
+        let mut archive = ZipArchive::new(reader).map_err(|err| DMARCError::Zip(err))?;
+        let mut xml: String = String::new();
+        archive.by_index(0).map_err(|err| DMARCError::Zip(err))?.read_to_string(&mut xml).map_err(|err| DMARCError::ZipRead(err))?;
+        return Ok(xml);
+    }
+
+    fn parse_report(&self, xml: &str) -> Result<DMARCReport, DMARCError> {
+        quick_xml::de::from_str(xml).map_err(|err| DMARCError::Parsing(err))
     }
 }
 
@@ -576,5 +582,13 @@ mod tests {
                 },
             }],
         })
+    }
+
+    #[test]
+    fn parse_empty_zip() {
+        let empty_zip = "\x50\x4b\x05\x06\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00".as_bytes();
+        let res = DMARCReader::new().parse_zip(empty_zip);
+        assert!(res.is_err(), "parsing empty ZIP file should fail, but succeeded");
+        assert!(if let DMARCError::Zip(err) = res.as_ref().err().unwrap() { err.to_string() == "specified file not found in archive" } else { false }, "{}", res.err().unwrap().to_string());
     }
 }
