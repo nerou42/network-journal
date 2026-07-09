@@ -12,6 +12,8 @@ edition = "2021"
 [dependencies]
 actix-cors = "0.7.1"
 actix-web = { version = "4", features = ["openssl"] }
+# transitive dependency reqwest -> rustls -> aws-lc-rs -> aws-lc-sys@0.42.0 is broken on x86_64 and required by aws-lc-rs@1.17.1
+aws-lc-rs = { version = "=1.17.0" }
 chrono = "0.4.41"
 clap = { version = "4.5.41", features = ["cargo", "derive"] }
 config = { version = "0.15.18", default-features = false, features = ["yaml"] }
