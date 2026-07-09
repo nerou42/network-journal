@@ -23,7 +23,8 @@ use serde::Serialize;
 
 use crate::{
     processing::{derivation::{analyze_url, analyze_user_agent, Client, Device, Url}, filter::Filter}, 
-    reports::{csp::CSPReport, dmarc::DMARCReport, smtp_tls::SMTPTLSReport, tls_cert_validity::TLSCertificateValidityReport}
+    reports::{csp::CSPReport, dmarc::DMARCReport, smtp_tls::SMTPTLSReport, tls_cert_validity::TLSCertificateValidityReport},
+    CONFIG,
 };
 
 pub mod coep;
@@ -149,7 +150,11 @@ pub fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: 
             rpt_type_str = "TLS-Certificate-Validity";
         }
     }
-    match serde_json::to_string_pretty(&decorated) {
+    let serializer = match CONFIG.log.pretty_print {
+        true => serde_json::to_string_pretty,
+        false => serde_json::to_string,
+    };
+    match serializer(&decorated) {
         Ok(serialized_report) => {
             info!("{} {}", rpt_type_str, serialized_report);
             Ok(())

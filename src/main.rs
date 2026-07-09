@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::{path::PathBuf, thread::{sleep, Builder}, time::Duration};
+use std::{path::PathBuf, sync::LazyLock, thread::{sleep, Builder}, time::Duration};
 
 use actix_cors::Cors;
 use actix_web::{dev::Service, guard::{self, Header}, http::header::{self, HeaderValue}, main, web::{resource, Data, Payload}, App, HttpServer};
@@ -35,6 +35,12 @@ use crate::{
 mod config;
 mod reports;
 mod processing;
+
+static CONFIG: LazyLock<NetworkJournalConfig> = LazyLock::new(|| {
+    let args = Args::parse();
+
+    NetworkJournalConfig::read(args.config.to_str().unwrap())
+});
 
 #[derive(Parser, Debug)]
 #[command(version, author, about, long_about = "Copyright (C) 2026 nerou GmbH This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions.")]
@@ -68,16 +74,12 @@ async fn main() -> std::io::Result<()> {
         .with_module_level("mio::poll", LevelFilter::Info)
         .env().init().unwrap();
 
-    let args = Args::parse();
-
-    let cfg = NetworkJournalConfig::read(args.config.to_str().unwrap());
-
-    let _tls_cert_check_thread_handle = if !cfg.certificate_check.domains.is_empty() {
+    let _tls_cert_check_thread_handle = if !CONFIG.certificate_check.domains.is_empty() {
         Some(Builder::new().name("tls_cert_check".to_string()).spawn(move || {
             trace!("TLS certificate check thread started");
 
             loop {
-                for domain in &cfg.certificate_check.domains {
+                for domain in &CONFIG.certificate_check.domains {
                     let cert_res = TLSCertificateValidityReport::create(domain.domain.as_str(), domain.port);
                     match cert_res {
                         Ok(cert_opt) => {
@@ -102,18 +104,18 @@ async fn main() -> std::io::Result<()> {
         None
     };
 
-    let filter = Filter::new(cfg.filter);
-    let _imap_thread_handle = if cfg.imap.enable {
+    let filter = Filter::new(&CONFIG.filter);
+    let _imap_thread_handle = if CONFIG.imap.enable {
         let filter_imap = filter.clone();
         Some(Builder::new().name("imap".to_string()).spawn(move || {
             trace!("IMAP thread started");
 
             loop {
                 let imap_connect_res = IMAPClient::connect(
-                    &cfg.imap.host,
-                    cfg.imap.port,
-                    &cfg.imap.username,
-                    &cfg.imap.password()
+                    &CONFIG.imap.host,
+                    CONFIG.imap.port,
+                    &CONFIG.imap.username,
+                    &CONFIG.imap.password()
                 );
 
                 match imap_connect_res {
@@ -197,16 +199,16 @@ async fn main() -> std::io::Result<()> {
                 .guard(guard::Any(Header("content-type", "application/tlsrpt+gzip")).or(Header("content-type", "application/tlsrpt+json")))
                 .post(report_smtp_tls))
     });
-    let bound_server = if cfg.tls.enable && cfg.tls.key.is_some() && cfg.tls.cert.is_some() {
+    let bound_server = if CONFIG.tls.enable && CONFIG.tls.key.is_some() && CONFIG.tls.cert.is_some() {
         let mut builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
         builder
-            .set_private_key_file(cfg.tls.key.unwrap(), SslFiletype::PEM)
+            .set_private_key_file(CONFIG.tls.key.as_ref().unwrap(), SslFiletype::PEM)
             .unwrap();
-        builder.set_certificate_chain_file(cfg.tls.cert.unwrap()).unwrap();
+        builder.set_certificate_chain_file(CONFIG.tls.cert.as_ref().unwrap()).unwrap();
 
-        server.bind_openssl(format!("{}:{}", cfg.listen, cfg.port), builder)?
+        server.bind_openssl(format!("{}:{}", CONFIG.listen, CONFIG.port), builder)?
     } else {
-        server.bind((cfg.listen, cfg.port))?
+        server.bind((CONFIG.listen.as_ref(), CONFIG.port))?
     };
     bound_server.run().await
 }

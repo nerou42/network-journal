@@ -23,11 +23,11 @@ use crate::config::FilterConfig;
 
 #[derive(Clone)]
 pub struct Filter {
-    config: FilterConfig,
+    config: &'static FilterConfig,
 }
 
 impl Filter {
-    pub fn new<'a>(config: FilterConfig) -> Self {
+    pub fn new<'a>(config: &'static FilterConfig) -> Self {
         Self { 
             config
         }
