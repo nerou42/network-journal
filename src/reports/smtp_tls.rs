@@ -18,7 +18,7 @@
 
 use std::io::{self, Read};
 
-use actix_web::{http::header, web::{Data, Payload}, HttpMessage, HttpRequest, HttpResponse, Responder};
+use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder, http::header, web::{Bytes, Data}};
 use flate2::bufread::GzDecoder;
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -111,26 +111,18 @@ fn decode_reader(bytes: Vec<u8>) -> io::Result<String> {
     Ok(s)
 }
 
-pub async fn report_smtp_tls(state: Data<WebState>, req: HttpRequest, body: Payload) -> impl Responder {
+pub async fn report_smtp_tls(state: Data<WebState>, req: HttpRequest, bytes: Bytes) -> impl Responder {
     let ua = req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap());
     let payload = if req.content_type() == "application/tlsrpt+gzip" && req.headers().get("content-encoding").is_none() {
-        match body.to_bytes().await {
-            Ok(bytes) => {
-                match decode_reader(bytes.to_vec()) {
-                    Ok(payload) => payload,
-                    Err(err) => {
-                        error!("{}", err);
-                        return HttpResponse::BadRequest();
-                    }
-                }
-            },
+        match decode_reader(bytes.to_vec()) {
+            Ok(payload) => payload,
             Err(err) => {
                 error!("{}", err);
                 return HttpResponse::BadRequest();
             }
         }
     } else if req.content_type() == "application/tlsrpt+json" || req.content_type() == "application/tlsrpt+gzip" {
-        match get_body_as_string(body).await {
+        match get_body_as_string(bytes) {
             Ok(payload) => payload,
             Err(err) => {
                 error!("{}", err);

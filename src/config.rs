@@ -29,6 +29,8 @@ pub struct NetworkJournalConfig {
     pub listen: String,
     /// defaults to 8080
     pub port: u16,
+    /// HTTP payload size limit in MiB, defaults to 4
+    pub max_payload_size: u16,
     pub tls: TlsConfig,
     pub log: LogConfig,
     pub imap: ImapConfig,
@@ -57,6 +59,7 @@ impl Default for NetworkJournalConfig {
         Self {
             listen: "127.0.0.1".to_string(),
             port: 8080,
+            max_payload_size: 4,
             log: LogConfig::default(),
             tls: TlsConfig::default(),
             imap: ImapConfig::default(),

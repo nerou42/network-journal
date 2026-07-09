@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use actix_web::{http::header, web::{Data, Payload}, HttpMessage, HttpRequest, HttpResponse, Responder};
+use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder, http::header, web::{Bytes, Data}};
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
 
@@ -94,11 +94,11 @@ async fn handle_csp_lvl3_report(payload: &str, user_agent: Option<&str>, filter:
     }
 }
 
-pub async fn report_csp(state: Data<WebState>, req: HttpRequest, body: Payload) -> impl Responder {
+pub async fn report_csp(state: Data<WebState>, req: HttpRequest, bytes: Bytes) -> impl Responder {
     let ua = req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap());
     match req.content_type() {
         "application/reports+json" => {
-            match get_body_as_string(body).await {
+            match get_body_as_string(bytes) {
                 Ok(str) => {
                     match handle_csp_lvl3_report(&str, ua, &state.filter).await {
                         Ok(_) => HttpResponse::Ok(),
@@ -115,7 +115,7 @@ pub async fn report_csp(state: Data<WebState>, req: HttpRequest, body: Payload) 
             }
         },
         "application/csp-report" => {
-            match get_body_as_string(body).await {
+            match get_body_as_string(bytes) {
                 Ok(str) => {
                     let parse_res = serde_json::from_str::<CSPReport>(&str);
                     match parse_res {
