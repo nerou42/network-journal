@@ -19,7 +19,7 @@
 use std::{path::PathBuf, sync::LazyLock, thread::{sleep, Builder}, time::Duration};
 
 use actix_cors::Cors;
-use actix_web::{dev::Service, guard::{self, Header}, http::header::{self, HeaderValue}, main, web::{resource, Data, Payload}, App, HttpServer};
+use actix_web::{App, HttpServer, dev::Service, guard::{self, Header}, http::header::{self, HeaderValue}, main, web::{Bytes, Data, JsonConfig, PayloadConfig, resource}};
 use clap::{crate_name, crate_version, Parser};
 use futures_util::future::FutureExt;
 use log::{error, trace, warn, LevelFilter};
@@ -54,15 +54,10 @@ struct WebState {
     filter: Filter
 }
 
-async fn get_body_as_string(body: Payload) -> Result<String, String> {
-    match body.to_bytes().await {
-        Ok(bytes) => {
-            match String::from_utf8(bytes.to_vec()) {
-                Ok(str) => Ok(str),
-                Err(err) => Err(format!("failed to convert raw payload to string: {}", err))
-            }
-        },
-        Err(err) => Err(format!("failed to retrieve raw payload from payload: {}", err))
+fn get_body_as_string(bytes: Bytes) -> Result<String, String> {
+    match String::from_utf8(bytes.to_vec()) {
+        Ok(str) => Ok(str),
+        Err(err) => Err(format!("failed to convert raw payload to string: {}", err))
     }
 }
 
@@ -153,8 +148,10 @@ async fn main() -> std::io::Result<()> {
             .allow_any_origin()
             .allowed_methods(vec!["POST", "OPTIONS"])
             .allowed_header(header::CONTENT_TYPE);
-        
+
         App::new()
+            .app_data(PayloadConfig::new(CONFIG.max_payload_size as usize * 1024 * 1024))
+            .app_data(JsonConfig::default().limit(CONFIG.max_payload_size as usize * 1024 * 1024))
             .app_data(Data::new(WebState { 
                 filter: filter.clone()
             }))
@@ -210,4 +207,65 @@ async fn main() -> std::io::Result<()> {
         server.bind((CONFIG.listen.as_ref(), CONFIG.port))?
     };
     bound_server.run().await
+}
+
+#[cfg(test)]
+mod tests {
+    use actix_web::{App, http, test};
+
+    use crate::{config::FilterConfig, reports::{crash::{Crash, CrashReason}, reporting_api::{Report, ReportType, ReportingApiReport}}};
+
+    use super::*;
+
+    static FILTER_CONFIG: LazyLock<FilterConfig> = LazyLock::new(|| FilterConfig::default());
+
+    #[actix_web::test]
+    async fn test_max_payload_json() {
+        let app = test::init_service(App::new()
+            .app_data(PayloadConfig::new(3))
+            .app_data(JsonConfig::default().limit(10))
+            .app_data(Data::new(WebState {
+                filter: Filter::new(&FILTER_CONFIG)
+            }))
+            .service(resource("/reporting-api")
+                .guard(Header("content-type", "application/reports+json"))
+                .post(reporting_api))).await;
+        let req = test::TestRequest::post()
+            .uri("/reporting-api")
+            .set_json(ReportingApiReport::Single(Report {
+                rpt: ReportType::Crash(Crash {
+                    reason: CrashReason::OutOfMemory,
+                    stack: None,
+                    is_top_level: None,
+                    page_visibility: None
+                }),
+                age: None,
+                url: String::new(),
+                user_agent: None
+            }))
+            .insert_header((http::header::CONTENT_TYPE, "application/reports+json"))
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert_eq!(413, resp.status().as_u16(), "{:?}", resp.status());
+    }
+
+    #[actix_web::test]
+    async fn test_max_payload_bytes() {
+        let app = test::init_service(App::new()
+            .app_data(PayloadConfig::new(10))
+            .app_data(JsonConfig::default().limit(3))
+            .app_data(Data::new(WebState {
+                filter: Filter::new(&FILTER_CONFIG)
+            }))
+            .service(resource("/tlsrpt")
+                .guard(Header("content-type", "application/tlsrpt+json"))
+                .post(report_smtp_tls))).await;
+        let req = test::TestRequest::post()
+            .uri("/tlsrpt")
+            .set_payload("hello world!")
+            .insert_header((http::header::CONTENT_TYPE, "application/tlsrpt+json"))
+            .to_request();
+        let resp = test::call_service(&app, req).await;
+        assert_eq!(413, resp.status().as_u16(), "{:?}", resp.status());
+    }
 }

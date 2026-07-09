@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Handling of IMAP connection issues being retried immediately instead of after some backoff
 
+### Security
+
+- Put incoming HTTP payload size limits into place to prevent (D)DoS attacks
+
 
 ## [0.7.0](https://github.com/nerou42/network-journal/compare/v0.6.2...v0.7.0) - 2026-07-09
 
