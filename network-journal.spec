@@ -2,8 +2,8 @@
 %global           debug_package %{nil}
 
 Name:             network-journal
-Version:          0.7.0
-Release:          2%{?dist}
+Version:          0.7.1
+Release:          1%{?dist}
 Summary:          Webserver and IMAP client to collect standardized browser and mailer reports
 
 License:          GPL-3.0-or-later

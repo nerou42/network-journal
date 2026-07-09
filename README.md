@@ -116,6 +116,7 @@ There are several installation methods available:
 ### Configuration ("Precompiled Binary" and "Build from Source" only)
 
 Download the [reference configuration file](network-journal.reference.yml) and edit it to match your needs.
+Optionally, download the [regexes.yaml file](regexes.yaml) and place it in `/usr/share/network-journal/` to derive info about the sending browsers.
 Then start the server with the `--config` option set to the path to your configuration file: `network-journal --config /etc/network-journal.yml`
 
 :exclamation: **Note**: Some reporters require TLS to be enabled. If you are using some reverse proxy on the other hand, you do not need to enable TLS in this context but on your proxy.
