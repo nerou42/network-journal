@@ -114,6 +114,8 @@ pub struct ImapConfig {
     password: String,
     /// IMAP password file, takes precedence when [`Some`]
     password_file: Option<PathBuf>,
+    /// mailbox polling interval in seconds, defaults to 300 (5 minutes)
+    pub polling_interval: u32,
 }
 
 impl Default for ImapConfig {
@@ -125,6 +127,7 @@ impl Default for ImapConfig {
             username: "".to_string(),
             password: "".to_string(),
             password_file: None,
+            polling_interval: 300
         }
     }
 }
@@ -193,13 +196,16 @@ pub struct DomainConfig {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CertificateChecksConfig {
     #[serde(default)]
-    pub domains: Vec<CertificateCheckConfig>
+    pub domains: Vec<CertificateCheckConfig>,
+    /// check interval in seconds, defaults to 86400
+    pub interval: u32,
 }
 
 impl Default for CertificateChecksConfig {
     fn default() -> Self {
         Self {
-            domains: vec![]
+            domains: vec![],
+            interval: 86400
         }
     }
 }

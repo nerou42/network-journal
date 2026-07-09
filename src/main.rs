@@ -97,7 +97,7 @@ async fn main() -> std::io::Result<()> {
                     }
                 }
 
-                sleep(Duration::from_secs(86400));
+                sleep(Duration::from_secs(CONFIG.certificate_check.interval as u64));
             }
         }))
     } else {
@@ -136,12 +136,11 @@ async fn main() -> std::io::Result<()> {
                         }
                     },
                     Err(err) => {
-                        error!("failed to connect to IMAP server: {}", err);
-                        continue;
+                        error!("failed to connect to IMAP server, retrying in {} seconds: {}", CONFIG.imap.polling_interval, err);
                     }
                 }
 
-                sleep(Duration::from_secs(300));
+                sleep(Duration::from_secs(CONFIG.imap.polling_interval as u64));
             }
         }))
     } else {
