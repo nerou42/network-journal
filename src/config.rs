@@ -30,6 +30,7 @@ pub struct NetworkJournalConfig {
     /// defaults to 8080
     pub port: u16,
     /// HTTP payload size limit in MiB, defaults to 4
+    #[serde(default = "default_max_payload_size")]
     pub max_payload_size: u16,
     pub tls: TlsConfig,
     pub log: LogConfig,
@@ -37,6 +38,10 @@ pub struct NetworkJournalConfig {
     pub filter: FilterConfig,
     /// check TLS server certificates for validity
     pub certificate_check: CertificateChecksConfig
+}
+
+fn default_max_payload_size() -> u16 {
+    4
 }
 
 impl NetworkJournalConfig {
@@ -106,10 +111,12 @@ impl Default for LogConfig {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ImapConfig {
     /// default false
+    #[serde(default)]
     pub enable: bool,
     /// IMAP host
     pub host: String,
     /// IMAP port, defaults to 993
+    #[serde(default = "default_imap_port")]
     pub port: u16,
     /// IMAP username
     pub username: String,
@@ -118,7 +125,16 @@ pub struct ImapConfig {
     /// IMAP password file, takes precedence when [`Some`]
     password_file: Option<PathBuf>,
     /// mailbox polling interval in seconds, defaults to 300 (5 minutes)
+    #[serde(default = "default_imap_polling_interval")]
     pub polling_interval: u32,
+}
+
+fn default_imap_port() -> u16 {
+    993
+}
+
+fn default_imap_polling_interval() -> u32 {
+    300
 }
 
 impl Default for ImapConfig {
@@ -201,7 +217,12 @@ pub struct CertificateChecksConfig {
     #[serde(default)]
     pub domains: Vec<CertificateCheckConfig>,
     /// check interval in seconds, defaults to 86400
+    #[serde(default = "default_cert_check_interval")]
     pub interval: u32,
+}
+
+fn default_cert_check_interval() -> u32 {
+    86400
 }
 
 impl Default for CertificateChecksConfig {
