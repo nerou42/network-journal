@@ -1,4 +1,4 @@
-/**
+/*!
  * network-journal - collect network reports and print them to file
  * Copyright (C) 2026 nerou GmbH
  * 

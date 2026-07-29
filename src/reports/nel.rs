@@ -1,4 +1,4 @@
-/**
+/*!
  * network-journal - collect network reports and print them to file
  * Copyright (C) 2026 nerou GmbH
  * 
@@ -23,8 +23,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum Phase {
+    /// DNS
     #[serde(rename = "dns")]
-    DNS,
+    Dns,
     Connection,
     Application
 }
@@ -78,7 +79,7 @@ mod tests {
         }"#;
         let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Box::new(Report {
             rpt: ReportType::NetworkError(NetworkError {
                 elapsed_time: 823,
                 method: "GET".to_string(),
@@ -96,7 +97,7 @@ mod tests {
             age: Some(0),
             url: "https://www.example.com/".to_string(),
             user_agent: None
-        }));
+        })));
     }
 
     #[test]
@@ -122,11 +123,11 @@ mod tests {
         }"#;
         let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Box::new(Report {
             rpt: ReportType::NetworkError(NetworkError {
                 elapsed_time: 143,
                 method: "GET".to_string(),
-                phase: Phase::DNS,
+                phase: Phase::Dns,
                 protocol: "".to_string(),
                 referrer: Some("https://www.example.com/".to_string()),
                 request_headers: Some(HashMap::new()),
@@ -140,7 +141,7 @@ mod tests {
             age: Some(0),
             url: "https://widget.com/thing.js".to_string(),
             user_agent: None
-        }));
+        })));
     }
 
     #[test]
@@ -165,11 +166,11 @@ mod tests {
         }"#;
         let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Box::new(Report {
             rpt: ReportType::NetworkError(NetworkError {
                 elapsed_time: 48,
                 method: "GET".to_string(),
-                phase: Phase::DNS,
+                phase: Phase::Dns,
                 protocol: "http/1.1".to_string(),
                 referrer: None,
                 request_headers: Some(HashMap::new()),
@@ -183,7 +184,7 @@ mod tests {
             age: Some(0),
             url: "https://new-subdomain.example.com/".to_string(),
             user_agent: None
-        }));
+        })));
     }
 
     #[test]
@@ -210,7 +211,7 @@ mod tests {
         }"#;
         let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Box::new(Report {
             rpt: ReportType::NetworkError(NetworkError {
                 elapsed_time: 1392,
                 method: "GET".to_string(),
@@ -228,7 +229,7 @@ mod tests {
             age: Some(0),
             url: "https://example.com/".to_string(),
             user_agent: None
-        }));
+        })));
     }
 
     #[test]
@@ -257,7 +258,7 @@ mod tests {
         }"#;
         let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Box::new(Report {
             rpt: ReportType::NetworkError(NetworkError {
                 elapsed_time: 45,
                 method: "GET".to_string(),
@@ -275,7 +276,7 @@ mod tests {
             age: Some(0),
             url: "https://example.com/".to_string(),
             user_agent: None
-        }));
+        })));
     }
 
     #[test]
@@ -304,7 +305,7 @@ mod tests {
         }"#;
         let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Box::new(Report {
             rpt: ReportType::NetworkError(NetworkError {
                 elapsed_time: 935,
                 method: "GET".to_string(),
@@ -322,7 +323,7 @@ mod tests {
             age: Some(0),
             url: "https://example.com/".to_string(),
             user_agent: None
-        }));
+        })));
     }
 
     #[test]
@@ -347,7 +348,7 @@ mod tests {
         }"#;
         let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Box::new(Report {
             rpt: ReportType::NetworkError(NetworkError {
                 elapsed_time: 57,
                 method: "GET".to_string(),
@@ -365,7 +366,7 @@ mod tests {
             age: Some(0),
             url: "https://example.com/".to_string(),
             user_agent: None
-        }));
+        })));
     }
 
     #[test]
@@ -390,7 +391,7 @@ mod tests {
         }"#;
         let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Box::new(Report {
             rpt: ReportType::NetworkError(NetworkError {
                 elapsed_time: 34,
                 method: "GET".to_string(),
@@ -408,7 +409,7 @@ mod tests {
             age: Some(0),
             url: "https://example.com/".to_string(),
             user_agent: None
-        }));
+        })));
     }
 
     #[test]
@@ -433,11 +434,11 @@ mod tests {
         }"#;
         let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Box::new(Report {
             rpt: ReportType::NetworkError(NetworkError {
                 elapsed_time: 0,
                 method: "GET".to_string(),
-                phase: Phase::DNS,
+                phase: Phase::Dns,
                 protocol: "http/1.1".to_string(),
                 referrer: None,
                 request_headers: Some(HashMap::new()),
@@ -451,7 +452,7 @@ mod tests {
             age: Some(0),
             url: "https://example.com/".to_string(),
             user_agent: None
-        }));
+        })));
     }
 
     #[test]
@@ -476,11 +477,11 @@ mod tests {
         }"#;
         let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Box::new(Report {
             rpt: ReportType::NetworkError(NetworkError {
                 elapsed_time: 0,
                 method: "GET".to_string(),
-                phase: Phase::DNS,
+                phase: Phase::Dns,
                 protocol: "http/1.1".to_string(),
                 referrer: None,
                 request_headers: Some(HashMap::new()),
@@ -494,6 +495,6 @@ mod tests {
             age: Some(0),
             url: "https://example.com/".to_string(),
             user_agent: None
-        }));
+        })));
     }
 }

@@ -1,4 +1,4 @@
-/**
+/*!
  * network-journal - collect network reports and print them to file
  * Copyright (C) 2026 nerou GmbH
  * 
@@ -120,7 +120,7 @@ pub async fn report_csp(state: Data<WebState>, req: HttpRequest, bytes: Bytes) -
                     let parse_res = serde_json::from_str::<CSPReport>(&str);
                     match parse_res {
                         Ok(report) => {
-                            let res = handle_report(&ReportType::CSPLvl2(&report), ua, Some(&state.filter));
+                            let res = handle_report(&ReportType::CspLvl2(&report), ua, Some(&state.filter));
                             match res {
                                 Ok(_) => HttpResponse::Ok(),
                                 Err(err) => {
@@ -221,7 +221,7 @@ mod tests {
         }"#;
         let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Box::new(Report {
             rpt: ReportType::CSPViolation(CSPViolation {
                 document_url: "https://example.com/csp-report".to_string(),
                 referrer: Some("https://www.google.com/".to_string()),
@@ -239,7 +239,7 @@ mod tests {
             age: Some(53531),
             url: "https://example.com/csp-report".to_string(),
             user_agent: Some("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36".to_string())
-        }));
+        })));
     }
 
     #[test]
@@ -260,7 +260,7 @@ mod tests {
         }"#;
         let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Box::new(Report {
             rpt: ReportType::CSPHash(CSPHash {
                 document_url: "https://example.com/".to_string(),
                 subresource_url: "https://example.com/main.js".to_string(),
@@ -271,6 +271,6 @@ mod tests {
             age: Some(12),
             url: "https://example.com/".to_string(),
             user_agent: Some("Mozilla/5.0 (X11; Linux i686; rv:132.0) Gecko/20100101 Firefox/132.0".to_string())
-        }));
+        })));
     }
 }

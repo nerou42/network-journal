@@ -1,4 +1,4 @@
-/**
+/*!
  * network-journal - collect network reports and print them to file
  * Copyright (C) 2026 nerou GmbH
  * 
@@ -23,7 +23,7 @@ use log::error;
 use openssl::{asn1::Asn1TimeRef, error::ErrorStack, nid::Nid, ssl::{self, HandshakeError, SslConnector, SslMethod, SslVerifyMode}, x509::{CrlStatus, X509, X509Crl, X509NameRef}};
 use serde::{Serialize, Serializer};
 
-const CRL_MIME_TYPES: &[&'static str] = &["application/pkix-crl", "application/x-pkcs7-crl"];
+const CRL_MIME_TYPES: &[&str] = &["application/pkix-crl", "application/x-pkcs7-crl"];
 
 #[derive(Serialize, Debug)]
 pub struct CertificateIdentifier {
@@ -98,17 +98,17 @@ where
 impl CertificateInfo {
 
     pub fn display_name(&self) -> Option<&String> {
-        self.subject.common_name.as_ref().or(self.subject_alt_names.get(0))
+        self.subject.common_name.as_ref().or(self.subject_alt_names.first())
     }
 
     pub fn is_expired(&self) -> bool {
         let now = Utc::now();
-        return self.not_before.gt(&now) || self.not_after.lt(&now);
+        self.not_before.gt(&now) || self.not_after.lt(&now)
     }
 
     pub fn get_days_until_expiration(&self) -> i64 {
         let now = Utc::now();
-        return (self.not_after.to_utc() - now).num_days();
+        (self.not_after.to_utc() - now).num_days()
     }
 
     fn asn1_date_to_chrono(asn1_time: &Asn1TimeRef) -> Result<DateTime<FixedOffset>, Error> {
@@ -121,8 +121,8 @@ impl CertificateInfo {
             issuer: cert.issuer_name().into(),
             subject: cert.subject_name().into(),
             subject_alt_names: cert.subject_alt_names().map_or(vec![], |stack| stack.into_iter().filter_map(|gn| gn.dnsname().or(gn.email()).map(|n| n.to_string())).collect()),
-            not_before: Self::asn1_date_to_chrono(&cert.not_before())?,
-            not_after: Self::asn1_date_to_chrono(&cert.not_after())?,
+            not_before: Self::asn1_date_to_chrono(cert.not_before())?,
+            not_after: Self::asn1_date_to_chrono(cert.not_after())?,
             crl_distribution_urls: vec![]
         };
 
@@ -139,7 +139,7 @@ impl CertificateInfo {
                 }
             }
         }
-        return Ok(info);
+        Ok(info)
     }
 }
 
@@ -217,11 +217,11 @@ impl TLSCertificateValidityReport {
 #[derive(Debug)]
 pub enum Error {
     SslErrorStack(ErrorStack),
-    TcpError(io::Error),
-    HandshakeError(HandshakeError<TcpStream>),
-    ShutdownError(ssl::Error),
-    ParseError(chrono::ParseError),
-    HttpError(reqwest::Error),
+    Tcp(io::Error),
+    Handshake(HandshakeError<TcpStream>),
+    Shutdown(ssl::Error),
+    Parse(chrono::ParseError),
+    Http(reqwest::Error),
 }
 
 impl From<ErrorStack> for Error {
@@ -232,31 +232,31 @@ impl From<ErrorStack> for Error {
 
 impl From<io::Error> for Error {
     fn from(value: io::Error) -> Self {
-        Self::TcpError(value)
+        Self::Tcp(value)
     }
 }
 
 impl From<HandshakeError<TcpStream>> for Error {
     fn from(value: HandshakeError<TcpStream>) -> Self {
-        Self::HandshakeError(value)
+        Self::Handshake(value)
     }
 }
 
 impl From<ssl::Error> for Error {
     fn from(value: ssl::Error) -> Self {
-        Self::ShutdownError(value)
+        Self::Shutdown(value)
     }
 }
 
 impl From<chrono::ParseError> for Error {
     fn from(value: chrono::ParseError) -> Self {
-        Self::ParseError(value)
+        Self::Parse(value)
     }
 }
 
 impl From<reqwest::Error> for Error {
     fn from(value: reqwest::Error) -> Self {
-        Self::HttpError(value)
+        Self::Http(value)
     }
 }
 
@@ -264,11 +264,11 @@ impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::SslErrorStack(e) => write!(f, "{}", e),
-            Self::TcpError(e) => write!(f, "{}", e),
-            Self::HandshakeError(e) => write!(f, "{}", e),
-            Self::ShutdownError(e) => write!(f, "{}", e),
-            Self::ParseError(e) => write!(f, "{}", e),
-            Self::HttpError(e) => write!(f, "{}", e),
+            Self::Tcp(e) => write!(f, "{}", e),
+            Self::Handshake(e) => write!(f, "{}", e),
+            Self::Shutdown(e) => write!(f, "{}", e),
+            Self::Parse(e) => write!(f, "{}", e),
+            Self::Http(e) => write!(f, "{}", e),
         }
     }
 }

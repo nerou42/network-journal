@@ -1,4 +1,4 @@
-/**
+/*!
  * network-journal - collect network reports and print them to file
  * Copyright (C) 2026 nerou GmbH
  * 
@@ -35,10 +35,10 @@ struct DateRange {
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "kebab-case")]
 enum PolicyType {
-    #[serde(rename = "tlsa")]
-    TLSA,
-    #[serde(rename = "sts")]
-    STS,
+    /// TLSA
+    Tlsa,
+    /// STS
+    Sts,
     NoPolicyFound
 }
 
@@ -148,7 +148,7 @@ pub async fn report_smtp_tls(state: Data<WebState>, req: HttpRequest, bytes: Byt
         }
     };
     let res = handle_report(
-        &ReportType::SMTPTLSRPT(&report), 
+        &ReportType::SmtpTlsRpt(&report), 
         ua,
         Some(&state.filter)
     );
@@ -232,7 +232,7 @@ mod tests {
             report_id: "5065427c-23d3-47ca-b6e0-946ea0e8c4be".to_string(), 
             policies: vec![PoliciesItem { 
                 policy: Policy { 
-                    policy_type: PolicyType::STS, 
+                    policy_type: PolicyType::Sts, 
                     policy_string: vec![
                         "version: STSv1".to_string(),
                         "mode: testing".to_string(),
@@ -329,7 +329,7 @@ mod tests {
             report_id: "2025-09-21T00:00:00Z_example.com".to_string(), 
             policies: vec![PoliciesItem { 
                 policy: Policy { 
-                    policy_type: PolicyType::STS, 
+                    policy_type: PolicyType::Sts, 
                     policy_string: vec![
                         "version: STSv1".to_string(),
                         "mode: enforce".to_string(),

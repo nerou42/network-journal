@@ -9,14 +9,16 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-Dwarnings"
 
 jobs:
   build_and_test:
     name: Build and test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: rustup update stable && rustup default stable
       - run: cargo update --verbose
       - run: cargo build --verbose
       - run: cargo test --verbose
+      - run: cargo clippy --no-deps --all-targets --all-features

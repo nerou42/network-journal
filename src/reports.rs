@@ -1,4 +1,4 @@
-/**
+/*!
  * network-journal - collect network reports and print them to file
  * Copyright (C) 2026 nerou GmbH
  * 
@@ -44,11 +44,16 @@ pub mod tls_cert_validity;
 #[derive(Serialize, Debug)]
 #[serde(untagged)]
 pub enum ReportType<'a> {
-    ReportingAPI(&'a reporting_api::Report),
-    CSPLvl2(&'a CSPReport),
-    SMTPTLSRPT(&'a SMTPTLSReport),
-    DMARC(&'a DMARCReport),
-    TLSCertificateValidity(&'a TLSCertificateValidityReport)
+    /// Reporting API
+    ReportingApi(&'a reporting_api::Report),
+    /// CSP Level 2
+    CspLvl2(&'a CSPReport),
+    /// SMTP TLS Report
+    SmtpTlsRpt(&'a SMTPTLSReport),
+    /// DMARC
+    Dmarc(&'a DMARCReport),
+    /// TLS Certificate Validity
+    TlsCertificateValidity(&'a TLSCertificateValidityReport)
 }
 
 #[derive(Serialize, Default, Debug)]
@@ -91,13 +96,13 @@ pub fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: 
     
     let rpt_type_str: &str;
     match report {
-        ReportType::ReportingAPI(rpt) => {
-            if filter.map_or(true, |f| f.is_domain_of_url_allowed(&rpt.url)) {
+        ReportType::ReportingApi(rpt) => {
+            if filter.is_none_or(|f| f.is_domain_of_url_allowed(&rpt.url)) {
                 if let Ok(parsed_url) = analyze_url(&rpt.url) {
                     decorated.derived.url = parsed_url;
                 }
                 if let Some(user_agent) = &rpt.user_agent {
-                    (decorated.derived.client, decorated.derived.os, decorated.derived.device) = analyze_user_agent(&user_agent);
+                    (decorated.derived.client, decorated.derived.os, decorated.derived.device) = analyze_user_agent(user_agent);
                 }
 
                 rpt_type_str = match rpt.rpt {
@@ -116,8 +121,8 @@ pub fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: 
                 return Ok(());
             }
         },
-        ReportType::CSPLvl2(rpt) => {
-            if filter.map_or(true, |f| f.is_domain_of_url_allowed(&rpt.csp_report.document_url)) {
+        ReportType::CspLvl2(rpt) => {
+            if filter.is_none_or(|f| f.is_domain_of_url_allowed(&rpt.csp_report.document_url)) {
                 if let Ok(parsed_url) = analyze_url(&rpt.csp_report.document_url) {
                     decorated.derived.url = parsed_url;
                 }
@@ -126,26 +131,26 @@ pub fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: 
                 return Ok(());
             }
         },
-        ReportType::SMTPTLSRPT(rpt) => {
-            decorated.derived.url.host = rpt.get_policy_domains().get(0).map(|s| s.to_string());
+        ReportType::SmtpTlsRpt(rpt) => {
+            decorated.derived.url.host = rpt.get_policy_domains().first().map(|s| s.to_string());
             if let Some(host) = &decorated.derived.url.host {
-                if !filter.map_or(true, |f| f.is_domain_allowed(host.as_str())) {
+                if !filter.is_none_or(|f| f.is_domain_allowed(host.as_str())) {
                     return Ok(());
                 }
             }
             rpt_type_str = "SMTP-TLS-RPT";
         },
-        ReportType::DMARC(rpt) => {
+        ReportType::Dmarc(rpt) => {
             decorated.derived.url.host = Some(rpt.get_published_policys_domain().to_string());
             if let Some(host) = &decorated.derived.url.host {
-                if !filter.map_or(true, |f| f.is_domain_allowed(host.as_str())) {
+                if !filter.is_none_or(|f| f.is_domain_allowed(host.as_str())) {
                     return Ok(());
                 }
             }
             decorated.derived.client.family = rpt.get_sender_organisation().to_string();
             rpt_type_str = "DMARC";
         },
-        ReportType::TLSCertificateValidity(rpt) => {
+        ReportType::TlsCertificateValidity(rpt) => {
             decorated.derived.url.host = rpt.certificate.display_name().cloned();
             rpt_type_str = "TLS-Certificate-Validity";
         }

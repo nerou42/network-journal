@@ -1,4 +1,4 @@
-/**
+/*!
  * network-journal - collect network reports and print them to file
  * Copyright (C) 2026 nerou GmbH
  * 
@@ -243,7 +243,8 @@ impl DMARCReport {
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum DMARCError {
-    IMAP(imap::Error),
+    /// IMAP
+    Imap(imap::Error),
     Utf8(Utf8Error),
     Gzip(std::io::Error),
     Zip(ZipError),
@@ -254,7 +255,7 @@ pub enum DMARCError {
 impl Display for DMARCError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
-            DMARCError::IMAP(err) => write!(f, "DMARCError while working with IMAP: {}", err),
+            DMARCError::Imap(err) => write!(f, "DMARCError while working with IMAP: {}", err),
             DMARCError::Utf8(err) => write!(f, "DMARCError while decoding UTF-8: {}", err),
             DMARCError::Gzip(err) => write!(f, "DMARCError while working with GZIP file: {}", err),
             DMARCError::Zip(err) => write!(f, "DMARCError while working with ZIP file: {}", err),
@@ -290,7 +291,7 @@ impl IMAPClient {
     pub fn read(&mut self, query: &str) -> Result<Vec<DMARCReport>, DMARCError> {
         // fetch message number 1 in this mailbox, along with its RFC822 field.
         // RFC 822 dictates the format of the body of e-mails
-        let search_results = self.session.uid_search(query).map_err(|err| DMARCError::IMAP(err))?;
+        let search_results = self.session.uid_search(query).map_err(DMARCError::Imap)?;
         if search_results.is_empty() {
             return Ok(vec![]);
         }
@@ -298,7 +299,7 @@ impl IMAPClient {
         let messages = self.session.uid_fetch(
             uid_set, 
             "RFC822"
-        ).map_err(|err| DMARCError::IMAP(err))?;
+        ).map_err(DMARCError::Imap)?;
         trace!("got {} e-mail(s)", messages.len());
         let mut res = vec![];
         let reader = DMARCReader::new();
@@ -339,33 +340,33 @@ impl DMARCReader {
         if let Some(attachment) = msg.attachment(0) {
             let mut xml: String = String::new();
             if attachment.is_content_type("text", "xml") {
-                xml = from_utf8(attachment.contents()).map_err(|err| DMARCError::Utf8(err))?.to_string();
+                xml = from_utf8(attachment.contents()).map_err(DMARCError::Utf8)?.to_string();
             } else if attachment.is_content_type("application", "gzip") {
                 let mut decoder = GzDecoder::new(attachment.contents());
-                decoder.read_to_string(&mut xml).map_err(|err| DMARCError::Gzip(err))?;
+                decoder.read_to_string(&mut xml).map_err(DMARCError::Gzip)?;
             } else if attachment.is_content_type("application", "zip") {
                 xml = self.parse_zip(attachment.contents())?;
             } else {
                 debug!("unexpected content type: {:?}", attachment.content_type());
                 return Ok(None);
             }
-            return self.parse_report(&xml).map(|res| Some(res));
+            self.parse_report(&xml).map(Some)
         } else {
             debug!("no attachment found");
-            return Ok(None);
+            Ok(None)
         }
     }
 
     fn parse_zip(&self, bytes: &[u8]) -> Result<String, DMARCError> {
         let reader = Cursor::new(bytes);
-        let mut archive = ZipArchive::new(reader).map_err(|err| DMARCError::Zip(err))?;
+        let mut archive = ZipArchive::new(reader).map_err(DMARCError::Zip)?;
         let mut xml: String = String::new();
-        archive.by_index(0).map_err(|err| DMARCError::Zip(err))?.read_to_string(&mut xml).map_err(|err| DMARCError::ZipRead(err))?;
-        return Ok(xml);
+        archive.by_index(0).map_err(DMARCError::Zip)?.read_to_string(&mut xml).map_err(DMARCError::ZipRead)?;
+        Ok(xml)
     }
 
     fn parse_report(&self, xml: &str) -> Result<DMARCReport, DMARCError> {
-        quick_xml::de::from_str(xml).map_err(|err| DMARCError::Parsing(err))
+        quick_xml::de::from_str(xml).map_err(DMARCError::Parsing)
     }
 }
 

@@ -1,4 +1,4 @@
-/**
+/*!
  * network-journal - collect network reports and print them to file
  * Copyright (C) 2026 nerou GmbH
  * 
@@ -64,7 +64,7 @@ mod tests {
         }"#;
         let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Box::new(Report {
             rpt: ReportType::Crash(Crash {
                 reason: CrashReason::OutOfMemory,
                 stack: None,
@@ -74,6 +74,6 @@ mod tests {
             age: Some(42),
             url: "https://example.com/".to_string(),
             user_agent: Some("Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0".to_string())
-        }));
+        })));
     }
 }

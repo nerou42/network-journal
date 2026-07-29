@@ -1,4 +1,4 @@
-/**
+/*!
  * network-journal - collect network reports and print them to file
  * Copyright (C) 2026 nerou GmbH
  * 
@@ -74,7 +74,7 @@ impl Default for NetworkJournalConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct TlsConfig {
     /// default false
     pub enable: bool,
@@ -82,16 +82,6 @@ pub struct TlsConfig {
     pub cert: Option<PathBuf>,
     /// PEM encoded private key file
     pub key: Option<PathBuf>
-}
-
-impl Default for TlsConfig {
-    fn default() -> Self {
-        Self {
-            enable: false,
-            cert: None,
-            key: None
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -163,7 +153,7 @@ impl ImapConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct FilterConfig {
     /// empty list allows all domains
     #[serde(default)]
@@ -177,7 +167,7 @@ impl FilterConfig {
                 DomainConfigType::Simple(d) => domain == d,
                 DomainConfigType::Complex(d) => {
                     let mut subdomain_pattern = d.domain.clone();
-                    subdomain_pattern.insert_str(0, ".");
+                    subdomain_pattern.insert(0, '.');
                     d.domain == domain || (d.include_subdomains && domain.ends_with(&subdomain_pattern))
                 }
             };
@@ -185,15 +175,7 @@ impl FilterConfig {
                 return true;
             }
         }
-        return false;
-    }
-}
-
-impl Default for FilterConfig {
-    fn default() -> Self {
-        Self {
-            domain_whitelist: vec![]
-        }
+        false
     }
 }
 
@@ -255,6 +237,6 @@ mod tests {
         // read() would panic if it can not handle the file format, so we do not really need asserts to check if it succeeds
         let config_res = NetworkJournalConfig::read("network-journal.reference.yml");
         // ...instead, let's just check for secrets being present in the reference config unintendedly
-        assert!(config_res.imap.password == "".to_string(), "unexpected IMAP password '{}'", config_res.imap.password);
+        assert!(config_res.imap.password.is_empty(), "unexpected IMAP password '{}'", config_res.imap.password);
     }
 }

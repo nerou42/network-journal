@@ -1,4 +1,4 @@
-/**
+/*!
  * network-journal - collect network reports and print them to file
  * Copyright (C) 2026 nerou GmbH
  * 
@@ -34,16 +34,21 @@ use crate::{processing::filter::Filter, reports::{
     permissions::PermissionsPolicyViolation
 }, WebState};
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(rename_all = "kebab-case", tag = "type", content = "body")]
 pub enum ReportType {
+    /// Cross Origin Embedder Policy
     #[serde(rename = "coep")]
     COEP(CrossOriginEmbedderPolicyViolation),
+    /// Cross Origin Opener Policy
     #[serde(rename = "coop")]
     COOP(CrossOriginOpenerPolicyViolation),
     Crash(Crash),
+    /// Content Security Policy - Hash
     #[serde(rename = "csp-hash")]
     CSPHash(CSPHash),
+    /// Content Security Policy - Violation
     #[serde(rename = "csp-violation")]
     CSPViolation(CSPViolation),
     Deprecation(Deprecation),
@@ -67,17 +72,17 @@ pub struct Report {
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 #[serde(untagged)]
 pub enum ReportingApiReport {
-    Single(Report),
+    Single(Box<Report>),
     Multi(Vec<Report>)
 }
 
 pub async fn handle_reporting_api_report(reports: &ReportingApiReport, user_agent: Option<&str>, filter: &Filter) -> Result<(), reports::Error> {
     match reports {
-        ReportingApiReport::Single(report) => handle_report(&reports::ReportType::ReportingAPI(report), user_agent, Some(filter)),
+        ReportingApiReport::Single(report) => handle_report(&reports::ReportType::ReportingApi(report), user_agent, Some(filter)),
         ReportingApiReport::Multi(reports) => {
             let mut res = Ok(());
             for report in reports {
-                let handle_res = handle_report(&reports::ReportType::ReportingAPI(report), user_agent, Some(filter));
+                let handle_res = handle_report(&reports::ReportType::ReportingApi(report), user_agent, Some(filter));
                 if handle_res.is_err() {
                     res = handle_res;
                     break;
@@ -121,7 +126,7 @@ mod tests {
         let deser_res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(deser_res.is_ok());
         if let Ok(report) = deser_res {
-            assert_eq!(report, ReportingApiReport::Single(Report {
+            assert_eq!(report, ReportingApiReport::Single(Box::new(Report {
                 rpt: ReportType::Crash(Crash {
                     reason: CrashReason::OutOfMemory,
                     stack: None,
@@ -131,7 +136,7 @@ mod tests {
                 age: Some(42),
                 url: "https://example.com/".to_string(),
                 user_agent: Some("Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0".to_string())
-            }));
+            })));
             let ser_res = serde_json::to_string_pretty(&report);
             assert!(ser_res.is_ok());
             assert_eq!(json, ser_res.unwrap());

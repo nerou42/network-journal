@@ -1,4 +1,4 @@
-/**
+/*!
  * network-journal - collect network reports and print them to file
  * Copyright (C) 2026 nerou GmbH
  * 
@@ -27,7 +27,7 @@ pub struct Filter {
 }
 
 impl Filter {
-    pub fn new<'a>(config: &'static FilterConfig) -> Self {
+    pub fn new(config: &'static FilterConfig) -> Self {
         Self { 
             config
         }
@@ -42,15 +42,15 @@ impl Filter {
                 return self.is_domain_allowed(host);
             }
         }
-        return false;
+        false
     }
 
     pub fn is_domain_allowed(&self, host: &str) -> bool {
         if self.config.domain_whitelist.is_empty() || self.config.contains_domain(host) {
-            return true;
+            true
         } else {
             debug!("got report for domain \"{}\", which is not whitelisted -> drop", host);
-            return false;
+            false
         }
     }
 }

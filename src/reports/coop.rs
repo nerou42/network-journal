@@ -1,4 +1,4 @@
-/**
+/*!
  * network-journal - collect network reports and print them to file
  * Copyright (C) 2026 nerou GmbH
  * 
@@ -100,7 +100,7 @@ mod tests {
         }"#;
         let res = serde_json::from_str::<ReportingApiReport>(json);
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), ReportingApiReport::Single(Report {
+        assert_eq!(res.unwrap(), ReportingApiReport::Single(Box::new(Report {
             rpt: ReportType::COOP(CrossOriginOpenerPolicyViolation {
                 disposition: Disposition::Reporting,
                 effective_policy: CrossOriginOpenerPolicy::SameOrigin,
@@ -119,6 +119,6 @@ mod tests {
             age: Some(6),
             url: "bar.example/foo".to_string(),
             user_agent: Some("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36".to_string()),
-        }));
+        })));
     }
 }

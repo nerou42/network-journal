@@ -1,4 +1,4 @@
-/**
+/*!
  * network-journal - collect network reports and print them to file
  * Copyright (C) 2026 nerou GmbH
  * 
@@ -81,7 +81,7 @@ async fn main() -> std::io::Result<()> {
                             match cert_opt {
                                 Some(rpt) => {
                                     //println!("{:?}", rpt.certificate);
-                                    if let Err(err) = handle_report(&ReportType::TLSCertificateValidity(&rpt), None, None) {
+                                    if let Err(err) = handle_report(&ReportType::TlsCertificateValidity(&rpt), None, None) {
                                         error!("{}", err);
                                     }
                                 },
@@ -119,7 +119,7 @@ async fn main() -> std::io::Result<()> {
                         match imap_client.read("UNANSWERED UNSEEN UNDELETED UNDRAFT SUBJECT \"Report Domain:\"") {
                             Ok(reports) => {
                                 for report in reports {
-                                    if let Err(err) = handle_report(&ReportType::DMARC(&report), None, Some(&filter_imap)) {
+                                    if let Err(err) = handle_report(&ReportType::Dmarc(&report), None, Some(&filter_imap)) {
                                         error!("{}", err);
                                     }
                                 }
@@ -217,7 +217,7 @@ mod tests {
 
     use super::*;
 
-    static FILTER_CONFIG: LazyLock<FilterConfig> = LazyLock::new(|| FilterConfig::default());
+    static FILTER_CONFIG: LazyLock<FilterConfig> = LazyLock::new(FilterConfig::default);
 
     #[actix_web::test]
     async fn test_max_payload_json() {
@@ -232,7 +232,7 @@ mod tests {
                 .post(reporting_api))).await;
         let req = test::TestRequest::post()
             .uri("/reporting-api")
-            .set_json(ReportingApiReport::Single(Report {
+            .set_json(ReportingApiReport::Single(Box::new(Report {
                 rpt: ReportType::Crash(Crash {
                     reason: CrashReason::OutOfMemory,
                     stack: None,
@@ -242,7 +242,7 @@ mod tests {
                 age: None,
                 url: String::new(),
                 user_agent: None
-            }))
+            })))
             .insert_header((http::header::CONTENT_TYPE, "application/reports+json"))
             .to_request();
         let resp = test::call_service(&app, req).await;
