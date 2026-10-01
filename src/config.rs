@@ -237,6 +237,6 @@ mod tests {
         // read() would panic if it can not handle the file format, so we do not really need asserts to check if it succeeds
         let config_res = NetworkJournalConfig::read("network-journal.reference.yml");
         // ...instead, let's just check for secrets being present in the reference config unintendedly
-        assert!(config_res.imap.password.is_empty(), "unexpected IMAP password '{}'", config_res.imap.password);
+        assert!(config_res.imap.password.is_empty(), "IMAP password is empty");
     }
 }

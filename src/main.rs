@@ -142,6 +142,9 @@ async fn main() -> std::io::Result<()> {
         None
     };
 
+    let state = Data::new(WebState {
+        filter: filter.clone()
+    });
     let server_string: &'static str = format!("{}/{}", crate_name!(), crate_version!()).leak();
     let server = HttpServer::new(move || {
         let cors = Cors::default()
@@ -152,9 +155,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(PayloadConfig::new(CONFIG.max_payload_size as usize * 1024 * 1024))
             .app_data(JsonConfig::default().limit(CONFIG.max_payload_size as usize * 1024 * 1024))
-            .app_data(Data::new(WebState { 
-                filter: filter.clone()
-            }))
+            .app_data(Data::clone(&state))
             .wrap(cors)
             .wrap_fn(|req, srv| {
                 srv.call(req).map(|res| {
