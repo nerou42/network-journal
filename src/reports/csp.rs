@@ -19,6 +19,7 @@
 use actix_web::{HttpMessage, HttpRequest, HttpResponse, Responder, http::header, web::{Bytes, Data}};
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
+use uaparser_rs::UAParser;
 
 use crate::{
     get_body_as_string, 
@@ -86,10 +87,10 @@ pub struct CSPHash {
     destination: String
 }
 
-async fn handle_csp_lvl3_report(payload: &str, user_agent: Option<&str>, filter: &Filter) -> Result<(), reports::Error> {
+async fn handle_csp_lvl3_report(payload: &str, user_agent: Option<&str>, filter: &Filter, ua_parser: Option<&UAParser>) -> Result<(), reports::Error> {
     let report_parse_res = serde_json::from_str::<ReportingApiReport>(payload);
     match report_parse_res {
-        Ok(reports) => handle_reporting_api_report(&reports, user_agent, filter).await,
+        Ok(reports) => handle_reporting_api_report(&reports, user_agent, filter, ua_parser).await,
         Err(err) => Err(reports::Error::Parse(err))
     }
 }
@@ -100,7 +101,7 @@ pub async fn report_csp(state: Data<WebState>, req: HttpRequest, bytes: Bytes) -
         "application/reports+json" => {
             match get_body_as_string(bytes) {
                 Ok(str) => {
-                    match handle_csp_lvl3_report(&str, ua, &state.filter).await {
+                    match handle_csp_lvl3_report(&str, ua, &state.filter, state.ua_parser.as_ref()).await {
                         Ok(_) => HttpResponse::Ok(),
                         Err(err) => {
                             error!("{} in {}", err, str);
@@ -120,7 +121,7 @@ pub async fn report_csp(state: Data<WebState>, req: HttpRequest, bytes: Bytes) -
                     let parse_res = serde_json::from_str::<CSPReport>(&str);
                     match parse_res {
                         Ok(report) => {
-                            let res = handle_report(&ReportType::CspLvl2(&report), ua, Some(&state.filter));
+                            let res = handle_report(&ReportType::CspLvl2(&report), ua, Some(&state.filter), state.ua_parser.as_ref());
                             match res {
                                 Ok(_) => HttpResponse::Ok(),
                                 Err(err) => {
@@ -131,7 +132,7 @@ pub async fn report_csp(state: Data<WebState>, req: HttpRequest, bytes: Bytes) -
                         },
                         Err(err_csp2) => {
                             // attempt to parse as CSP level 3 report
-                            match handle_csp_lvl3_report(&str, ua, &state.filter).await {
+                            match handle_csp_lvl3_report(&str, ua, &state.filter, state.ua_parser.as_ref()).await {
                                 Ok(_) => {
                                     warn!("got CSP level 3 report with CSP level 2 content type from user agent: {}", ua.unwrap_or("unknown"));
                                     HttpResponse::Ok()

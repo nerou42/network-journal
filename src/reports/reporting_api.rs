@@ -19,6 +19,7 @@
 use actix_web::{http::header, web::{Data, Json}, HttpRequest, HttpResponse, Responder};
 use log::error;
 use serde::{Deserialize, Serialize};
+use uaparser_rs::UAParser;
 
 use crate::{processing::filter::Filter, reports::{
     self, 
@@ -76,13 +77,13 @@ pub enum ReportingApiReport {
     Multi(Vec<Report>)
 }
 
-pub async fn handle_reporting_api_report(reports: &ReportingApiReport, user_agent: Option<&str>, filter: &Filter) -> Result<(), reports::Error> {
+pub async fn handle_reporting_api_report(reports: &ReportingApiReport, user_agent: Option<&str>, filter: &Filter, ua_parser: Option<&UAParser>) -> Result<(), reports::Error> {
     match reports {
-        ReportingApiReport::Single(report) => handle_report(&reports::ReportType::ReportingApi(report), user_agent, Some(filter)),
+        ReportingApiReport::Single(report) => handle_report(&reports::ReportType::ReportingApi(report), user_agent, Some(filter), ua_parser),
         ReportingApiReport::Multi(reports) => {
             let mut res = Ok(());
             for report in reports {
-                let handle_res = handle_report(&reports::ReportType::ReportingApi(report), user_agent, Some(filter));
+                let handle_res = handle_report(&reports::ReportType::ReportingApi(report), user_agent, Some(filter), ua_parser);
                 if handle_res.is_err() {
                     res = handle_res;
                     break;
@@ -95,7 +96,7 @@ pub async fn handle_reporting_api_report(reports: &ReportingApiReport, user_agen
 
 pub async fn reporting_api(state: Data<WebState>, req: HttpRequest, reports: Json<ReportingApiReport>) -> impl Responder {
     let rpts = reports.into_inner();
-    let res = handle_reporting_api_report(&rpts, req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap()), &state.filter).await;
+    let res = handle_reporting_api_report(&rpts, req.headers().get(header::USER_AGENT).map(|h| h.to_str().unwrap()), &state.filter, state.ua_parser.as_ref()).await;
     match res {
         Ok(_) => HttpResponse::Ok(),
         Err(err) => {
