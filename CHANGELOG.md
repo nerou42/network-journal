@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Integrate Clippy into CI and fix corresponding issues
+- Update dependencies aws-lc-rs, itertools and quick-xml
 
 
 ## [0.7.2](https://github.com/nerou42/network-journal/compare/v0.7.1...v0.7.2) - 2026-07-10
