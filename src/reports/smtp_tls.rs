@@ -150,7 +150,8 @@ pub async fn report_smtp_tls(state: Data<WebState>, req: HttpRequest, bytes: Byt
     let res = handle_report(
         &ReportType::SmtpTlsRpt(&report), 
         ua,
-        Some(&state.filter)
+        Some(&state.filter),
+        None
     );
     match res {
         Ok(_) => HttpResponse::Ok(),

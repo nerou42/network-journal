@@ -20,6 +20,7 @@ use std::fmt::Display;
 
 use log::info;
 use serde::Serialize;
+use uaparser_rs::UAParser;
 
 use crate::{
     processing::{derivation::{analyze_url, analyze_user_agent, Client, Device, Url}, filter::Filter}, 
@@ -85,13 +86,13 @@ impl Display for Error {
     }
 }
 
-pub fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: Option<&Filter>) -> Result<(), Error> {
+pub fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: Option<&Filter>, ua_parser: Option<&UAParser>) -> Result<(), Error> {
     let mut decorated = DecoratedReport {
         report,
         derived: Derived::default()
     };
     if let Some(ua) = user_agent {
-        (decorated.derived.client, decorated.derived.os, decorated.derived.device) = analyze_user_agent(ua);
+        (decorated.derived.client, decorated.derived.os, decorated.derived.device) = analyze_user_agent(ua_parser, ua);
     }
     
     let rpt_type_str: &str;
@@ -102,7 +103,7 @@ pub fn handle_report(report: &ReportType<'_>, user_agent: Option<&str>, filter: 
                     decorated.derived.url = parsed_url;
                 }
                 if let Some(user_agent) = &rpt.user_agent {
-                    (decorated.derived.client, decorated.derived.os, decorated.derived.device) = analyze_user_agent(user_agent);
+                    (decorated.derived.client, decorated.derived.os, decorated.derived.device) = analyze_user_agent(ua_parser, user_agent);
                 }
 
                 rpt_type_str = match rpt.rpt {

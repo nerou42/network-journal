@@ -16,7 +16,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::path::Path;
 use serde::{Deserialize, Serialize};
 use uaparser_rs::UAParser;
 use url::ParseError;
@@ -75,13 +74,8 @@ impl Device {
     }
 }
 
-pub fn analyze_user_agent(user_agent: &str) -> (Client, Client, Device) {
-    #[cfg(debug_assertions)]
-    let path = "./regexes.yaml";
-    #[cfg(not(debug_assertions))]
-    let path = "/usr/share/network-journal/regexes.yaml";
-    if Path::new(path).exists() {
-        let uap = UAParser::from_yaml(path).unwrap();
+pub fn analyze_user_agent(ua_parser: Option<&UAParser>, user_agent: &str) -> (Client, Client, Device) {
+    if let Some(uap) = ua_parser {
         let client_info = uap.parse(user_agent);
         (Client::from_user_agent(client_info.user_agent), Client::from_os(client_info.os), Device::from_device(client_info.device))
     } else {

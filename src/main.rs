@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::{path::PathBuf, sync::LazyLock, thread::{sleep, Builder}, time::Duration};
+use std::{path::{Path, PathBuf}, sync::LazyLock, thread::{sleep, Builder}, time::Duration};
 
 use actix_cors::Cors;
 use actix_web::{App, HttpServer, dev::Service, guard::{self, Header}, http::header::{self, HeaderValue}, main, web::{Bytes, Data, JsonConfig, PayloadConfig, resource}};
@@ -25,6 +25,7 @@ use futures_util::future::FutureExt;
 use log::{error, trace, warn, LevelFilter};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use simple_logger::SimpleLogger;
+use uaparser_rs::UAParser;
 
 use crate::{
     config::NetworkJournalConfig, processing::filter::Filter, reports::{
@@ -51,7 +52,8 @@ struct Args {
 }
 
 struct WebState {
-    filter: Filter
+    filter: Filter,
+    ua_parser: Option<UAParser>,
 }
 
 fn get_body_as_string(bytes: Bytes) -> Result<String, String> {
@@ -81,7 +83,7 @@ async fn main() -> std::io::Result<()> {
                             match cert_opt {
                                 Some(rpt) => {
                                     //println!("{:?}", rpt.certificate);
-                                    if let Err(err) = handle_report(&ReportType::TlsCertificateValidity(&rpt), None, None) {
+                                    if let Err(err) = handle_report(&ReportType::TlsCertificateValidity(&rpt), None, None, None) {
                                         error!("{}", err);
                                     }
                                 },
@@ -119,7 +121,7 @@ async fn main() -> std::io::Result<()> {
                         match imap_client.read("UNANSWERED UNSEEN UNDELETED UNDRAFT SUBJECT \"Report Domain:\"") {
                             Ok(reports) => {
                                 for report in reports {
-                                    if let Err(err) = handle_report(&ReportType::Dmarc(&report), None, Some(&filter_imap)) {
+                                    if let Err(err) = handle_report(&ReportType::Dmarc(&report), None, Some(&filter_imap), None) {
                                         error!("{}", err);
                                     }
                                 }
@@ -142,9 +144,23 @@ async fn main() -> std::io::Result<()> {
         None
     };
 
+    #[cfg(debug_assertions)]
+    let regexes_path = "./regexes.yaml";
+    #[cfg(not(debug_assertions))]
+    let regexes_path = "/usr/share/network-journal/regexes.yaml";
+    let ua_parser = if Path::new(regexes_path).exists() {
+        let parser = UAParser::from_yaml(regexes_path).unwrap();
+        trace!("User agent parser initialized");
+        Some(parser)
+    } else {
+        warn!("User agent regexes not found, user agent parsing disabled");
+        None
+    };
     let state = Data::new(WebState {
-        filter: filter.clone()
+        filter,
+        ua_parser,
     });
+
     let server_string: &'static str = format!("{}/{}", crate_name!(), crate_version!()).leak();
     let server = HttpServer::new(move || {
         let cors = Cors::default()
@@ -226,7 +242,8 @@ mod tests {
             .app_data(PayloadConfig::new(3))
             .app_data(JsonConfig::default().limit(10))
             .app_data(Data::new(WebState {
-                filter: Filter::new(&FILTER_CONFIG)
+                filter: Filter::new(&FILTER_CONFIG),
+                ua_parser: None,
             }))
             .service(resource("/reporting-api")
                 .guard(Header("content-type", "application/reports+json"))
@@ -256,7 +273,8 @@ mod tests {
             .app_data(PayloadConfig::new(10))
             .app_data(JsonConfig::default().limit(3))
             .app_data(Data::new(WebState {
-                filter: Filter::new(&FILTER_CONFIG)
+                filter: Filter::new(&FILTER_CONFIG),
+                ua_parser: None,
             }))
             .service(resource("/tlsrpt")
                 .guard(Header("content-type", "application/tlsrpt+json"))
